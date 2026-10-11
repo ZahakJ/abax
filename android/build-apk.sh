@@ -54,7 +54,7 @@ echo "==> aapt2 compile/link"
 "$bt/aapt2" link -o "$build/unaligned.apk" -I "$android_jar" \
   --manifest "$here/AndroidManifest.xml" \
   --min-sdk-version 24 --target-sdk-version 35 \
-  --version-code "$version_code" --version-name "$version_name" \
+  --version-code "$version_code" --version-name "$version_name" --replace-version \
   --auto-add-overlay "$build/res.zip"
 
 echo "==> add native libraries (stored, uncompressed)"
