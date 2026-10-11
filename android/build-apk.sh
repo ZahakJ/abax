@@ -4,6 +4,7 @@
 #
 # Usage: android/build-apk.sh [--abis "arm64-v8a armeabi-v7a x86_64"] [--out path.apk] [--debug]
 # Env:   ANDROID_HOME (SDK root), ANDROID_NDK_HOME (NDK root), JAVA_HOME (for apksigner)
+#        ABAX_BUILD_TOOLS (default 35.0.0), ABAX_PLATFORM (default 35)
 #        ABAX_KEYSTORE, ABAX_KEYSTORE_PASSWORD, ABAX_KEY_ALIAS (release signing)
 #        When ABAX_KEYSTORE is unset a throwaway debug keystore is generated.
 set -euo pipefail
@@ -24,10 +25,14 @@ done
 
 : "${ANDROID_HOME:?set ANDROID_HOME}"
 : "${ANDROID_NDK_HOME:?set ANDROID_NDK_HOME}"
-bt_version="$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+# Pinned SDK components (the 0.1.0 release picked whatever sorted last on the
+# runner, which was a preview API 37 platform). Override with the env vars.
+bt_version="${ABAX_BUILD_TOOLS:-35.0.0}"
+platform_version="${ABAX_PLATFORM:-35}"
 bt="$ANDROID_HOME/build-tools/$bt_version"
-platform_version="$(ls "$ANDROID_HOME/platforms" | sed 's/android-//' | sort -n | tail -1)"
 android_jar="$ANDROID_HOME/platforms/android-$platform_version/android.jar"
+[ -x "$bt/aapt2" ] || { echo "build-tools $bt_version not found under $ANDROID_HOME/build-tools" >&2; exit 1; }
+[ -f "$android_jar" ] || { echo "platform android-$platform_version not found under $ANDROID_HOME/platforms" >&2; exit 1; }
 java_bin="${JAVA_HOME:+$JAVA_HOME/bin/}"
 
 version_name="$(grep -m1 '^version' "$root/Cargo.toml" | sed 's/.*"\(.*\)".*/\1/')"

@@ -105,3 +105,59 @@ inspectable. Load time is negligible.
 - Cold start to first frame on the desktop: < 300 ms (release).
 - Frame time with 27 rods and all beads animating: < 4 ms (release, 60 Hz headroom).
 - Binary size: Linux release < 15 MB; APK < 12 MB per ABI.
+
+## v0.2.0: rendering and public presence
+
+### Rendering decision
+
+The soroban is drawn by a custom `egui_wgpu::Callback` (one pipeline, one
+instanced draw, WGSL fragment shading) instead of layered egui polygons.
+Why:
+
+- Per-pixel lighting is what makes a bead read as a solid object: a key
+  light, a specular lobe, rim darkening, ambient occlusion where two beads
+  touch and a contact shadow on the board. Faking those with stacked
+  convex polygons and vertex colours gives bands, not surfaces, and needs
+  a dozen shapes per bead (135 beads at 27 rods).
+- Wood grain, lacquer sheen, bevels and a vignette are a few lines of
+  procedural math in a fragment shader; as textures they would need an
+  atlas per theme and per pixel density.
+- Cost is one draw call per soroban with ~250 instances; the fragment work
+  is cheap SDF math, well inside the budget at 27 rods animating. The
+  benchmark mode (`ABAX_BENCH=frames=N`) measures it; numbers before and
+  after are in the README.
+- eframe is already built on wgpu on every target (desktop and Android
+  NativeActivity), so the callback adds no dependency; `eframe::egui_wgpu`
+  is re-exported. The shader is WGSL, translated by naga to Vulkan, Metal,
+  DX12 and GLES, so one shader covers the four platforms.
+- Fallback: if `wgpu_render_state` is unavailable the widget uses the
+  previous painter path, so the app never shows an empty board.
+
+Everything that is not the instrument itself (text, hint arrows, digits,
+keypad, charts) stays in egui so it keeps egui's accessibility and
+theming.
+
+### Materials
+
+Three finishes under Settings > Appearance, each tuned for light and dark:
+
+| Finish | Frame | Rods and beam | Beads |
+|--------|-------|---------------|-------|
+| Walnut (default) | lacquered walnut, warm grain | bamboo | bone |
+| Ebony | near-black ebony, fine grain | brass | bone |
+| Maple | pale maple, fine grain | steel | slate |
+
+Vermilion stays the single accent in every finish.
+
+### Public presence
+
+- README: short; everything longer moves to the manual.
+- Manual: mdBook under `docs/` (pinned binary downloaded in the Pages
+  workflow, custom theme in the Abax palette), published at
+  `/abax/manual/`.
+- Landing page: hand-written static HTML/CSS under `docs/site/`, published
+  at `/abax/`. It reads the latest release from the GitHub API for the
+  download block.
+- Both are built by `.github/workflows/pages.yml` on push to `main`.
+- Captures live only under `docs/screenshots/` (used by the README, the
+  landing page and the manual).

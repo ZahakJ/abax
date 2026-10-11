@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Manual
+    url: https://zahakj.github.io/abax/manual/
+    about: Getting started, the curriculum, settings, the save-file format and building from source.
