@@ -105,8 +105,15 @@ jobs:
           ARCH="${{ matrix.arch }}"
           chmod +x packaging/make-app.sh
           packaging/make-app.sh "target/${{ matrix.target }}/release/abax" "dist/${ARCH}"
-          hdiutil create -volname Abax -srcfolder "dist/${ARCH}/Abax.app" -ov -format UDZO \
-            "dist/abax-${TAG}-macos-${ARCH}.dmg"
+          # hdiutil occasionally fails with "Resource busy" on hosted runners; retry.
+          for i in 1 2 3 4 5; do
+            if hdiutil create -volname Abax -srcfolder "dist/${ARCH}/Abax.app" -ov -format UDZO \
+                "dist/abax-${TAG}-macos-${ARCH}.dmg"; then
+              break
+            fi
+            [ "$i" = 5 ] && exit 1
+            sleep 10
+          done
 
       - uses: actions/upload-artifact@v4
         with:
@@ -123,11 +130,17 @@ jobs:
       - uses: actions/checkout@v4
 
       # Fail early with a clear message instead of shipping a debug-signed APK.
+      # Secrets are not allowed in step `if:` conditions, so test them via env.
       - name: Check signing secrets
-        if: ${{ secrets.ABAX_KEYSTORE_B64 == '' }}
+        env:
+          KEYSTORE_B64: ${{ secrets.ABAX_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ABAX_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ABAX_KEY_ALIAS }}
         run: |
-          echo "::error::ABAX_KEYSTORE_B64 secret is not set; refusing to publish a debug-signed APK."
-          exit 1
+          if [ -z "${KEYSTORE_B64}" ] || [ -z "${KEYSTORE_PASSWORD}" ] || [ -z "${KEY_ALIAS}" ]; then
+            echo "::error::Android signing secrets are not set; refusing to publish a debug-signed APK."
+            exit 1
+          fi
 
       # apksigner needs a JDK.
       - uses: actions/setup-java@v4
