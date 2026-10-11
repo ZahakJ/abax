@@ -26,12 +26,39 @@ pub enum InputMode {
     Both,
 }
 
+/// The soroban's material finish (frame, rods and beads). Serialised as the
+/// bare variant name, so a save reads `"finish":"Walnut"`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Finish {
+    /// Lacquered walnut frame, bamboo rods, bone beads.
+    #[default]
+    Walnut,
+    /// Near-black ebony frame, brass rods and beam, bone beads.
+    Ebony,
+    /// Pale maple frame, steel rods, slate beads.
+    Maple,
+}
+
+impl Finish {
+    pub const ALL: [Finish; 3] = [Finish::Walnut, Finish::Ebony, Finish::Maple];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Finish::Walnut => "walnut",
+            Finish::Ebony => "ebony",
+            Finish::Maple => "maple",
+        }
+    }
+}
+
 /// User preferences. Every field falls back to its default when missing.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
     pub rod_count: usize,
     pub theme: Theme,
+    /// Added in 0.2.0; older saves have no field and load as Walnut.
+    pub finish: Finish,
     pub sound: bool,
     pub volume: f32,
     pub left_handed: bool,
@@ -51,6 +78,7 @@ impl Default for Settings {
         Settings {
             rod_count: 13,
             theme: Theme::System,
+            finish: Finish::Walnut,
             sound: false,
             volume: 0.6,
             left_handed: false,
@@ -207,6 +235,24 @@ mod tests {
         assert_eq!(settings.rod_count, 13);
         assert_eq!(settings.input_mode, InputMode::Both);
         assert_eq!(settings.flash_ms, 1000);
+    }
+
+    #[test]
+    fn finish_defaults_and_round_trips() {
+        // A 0.1 save has no finish field: it loads as Walnut.
+        let old = SaveFile::from_json(r#"{"version":1,"settings":{"theme":"Dark"}}"#).unwrap();
+        assert_eq!(old.settings.finish, Finish::Walnut);
+        assert_eq!(old.settings.theme, Theme::Dark);
+        for f in Finish::ALL {
+            let mut save = SaveFile::new(1);
+            save.settings.finish = f;
+            let json = save.to_json();
+            assert!(json.contains(&format!(r#""finish":"{f:?}""#)), "{json}");
+            assert_eq!(SaveFile::from_json(&json).unwrap().settings.finish, f);
+        }
+        let s: Settings = serde_json::from_str(r#"{"finish":"Maple"}"#).unwrap();
+        assert_eq!(s.finish, Finish::Maple);
+        assert!(serde_json::from_str::<Settings>(r#"{"finish":"Oak"}"#).is_err());
     }
 
     #[test]

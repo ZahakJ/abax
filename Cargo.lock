@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "abax-core",
  "android_logger",
+ "bytemuck",
  "cpal",
  "directories",
  "eframe",

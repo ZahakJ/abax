@@ -1,6 +1,9 @@
 //! On-screen numeric keypad and keyboard mapping.
 
-use egui::{Key, Ui, Vec2};
+use egui::{Color32, Key, Ui, Vec2};
+
+use crate::theme::Palette;
+use crate::ui::{key_button, ON_ACCENT};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KeyAction {
@@ -50,17 +53,31 @@ pub fn keypad_width(key_size: Vec2) -> f32 {
 }
 
 /// Draw the keypad centred in the available width.
-pub fn keypad_centered(ui: &mut Ui, left_handed: bool, key_size: Vec2) -> Option<KeyAction> {
+pub fn keypad_centered(
+    ui: &mut Ui,
+    pal: &Palette,
+    left_handed: bool,
+    key_size: Vec2,
+) -> Option<KeyAction> {
     let pad = ((ui.available_width() - keypad_width(key_size)) / 2.0).max(0.0);
     ui.horizontal(|ui| {
         ui.add_space(pad);
-        keypad(ui, left_handed, key_size)
+        keypad(ui, pal, left_handed, key_size)
     })
     .inner
 }
 
+/// Digit keys: bone in light mode, a warm dark key in dark mode.
+fn key_fill(pal: &Palette) -> Color32 {
+    if pal.dark {
+        Color32::from_rgb(0x2F, 0x2A, 0x25)
+    } else {
+        Color32::from_rgb(0xFB, 0xF7, 0xEE)
+    }
+}
+
 /// Draw the keypad; returns the action pressed this frame, if any.
-pub fn keypad(ui: &mut Ui, left_handed: bool, key_size: Vec2) -> Option<KeyAction> {
+pub fn keypad(ui: &mut Ui, pal: &Palette, left_handed: bool, key_size: Vec2) -> Option<KeyAction> {
     let mut action = None;
     let rows: [[&str; 3]; 4] = [
         ["7", "8", "9"],
@@ -77,20 +94,20 @@ pub fn keypad(ui: &mut Ui, left_handed: bool, key_size: Vec2) -> Option<KeyActio
                     cells.reverse();
                 }
                 for label in cells {
-                    let is_enter = label == "Enter";
                     let size = if label.len() > 1 {
-                        key_size.y * 0.3
+                        key_size.y * 0.32
                     } else {
-                        key_size.y * 0.42
+                        key_size.y * 0.44
                     };
-                    let btn =
-                        egui::Button::new(egui::RichText::new(label).size(size)).min_size(key_size);
-                    let btn = if is_enter {
-                        btn.fill(ui.visuals().selection.bg_fill)
-                    } else {
-                        btn
+                    // Enter is the one solid vermilion key; Del sits back
+                    // in paper-2; digits are bone.
+                    let (fill, text) = match label {
+                        "Enter" => (pal.accent, ON_ACCENT),
+                        "Del" => (pal.paper2, pal.ink_soft),
+                        _ => (key_fill(pal), pal.ink),
                     };
-                    if ui.add(btn).clicked() {
+                    let resp = key_button(ui, pal, label, key_size, fill, text, size);
+                    if resp.clicked() {
                         action = Some(match label {
                             "Del" => KeyAction::Backspace,
                             "Enter" => KeyAction::Enter,

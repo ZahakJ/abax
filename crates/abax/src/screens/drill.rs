@@ -8,7 +8,7 @@ use abax_core::moves::{add_number_at, steps_to_show, sub_number_at};
 use abax_core::scheduler::DrillSpec;
 use abax_core::stats::{Attempt, DrillKind};
 use abax_core::{Soroban, Step};
-use egui::{Align, Layout, RichText, Ui};
+use egui::{RichText, Ui};
 
 use crate::keypad::{keyboard_actions, keypad, DigitBuffer, KeyAction};
 use crate::soroban_view::SorobanView;
@@ -413,25 +413,31 @@ impl DrillState {
         let skill = q.skill;
         let typed = self.typed_answer();
 
-        // Header: progress and prompt.
-        ui.horizontal(|ui| {
-            if ui.button("Back").clicked() {
-                app.go_home();
+        // Header: skill and progress.
+        let title = if ui.available_width() < 480.0 {
+            skill.short_name()
+        } else {
+            skill.name()
+        };
+        let progress = match self.sprint_end {
+            Some(end) => {
+                ui.ctx().request_repaint();
+                format!("{:.0} s", (end - now).max(0.0))
             }
-            ui.label(RichText::new(skill.name()).color(pal.ink_soft));
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if let Some(end) = self.sprint_end {
-                    let left = (end - now).max(0.0);
-                    ui.label(RichText::new(format!("{left:.0} s")).monospace());
-                    ui.ctx().request_repaint();
-                } else {
-                    ui.label(
-                        RichText::new(format!("{} / {}", self.idx + 1, self.queue.len()))
-                            .color(pal.ink_soft),
-                    );
-                }
-            });
-        });
+            None => format!("{} / {}", self.idx + 1, self.queue.len()),
+        };
+        let crumb = match self.mode {
+            DrillMode::Anzan { .. } => Some("Anzan"),
+            DrillMode::Sprint { .. } => Some("Sprint"),
+            DrillMode::Guided => Some("Practice"),
+            DrillMode::Normal => None,
+        };
+        if crate::ui::header(ui, &pal, crumb, title, |ui| {
+            ui.label(RichText::new(progress).monospace().color(pal.ink_soft));
+        }) {
+            app.go_home();
+            return;
+        }
 
         // Prompt.
         let prompt_text = match &item {
@@ -673,7 +679,7 @@ impl DrillState {
                     );
                 }
             });
-            if let Some(a) = crate::keypad::keypad_centered(ui, left, key) {
+            if let Some(a) = crate::keypad::keypad_centered(ui, &pal, left, key) {
                 actions.push(a);
             }
             ui.add_space(4.0);
@@ -714,9 +720,7 @@ impl DrillState {
                     self.last_move = now;
                 }
                 if self.phase == Phase::Working
-                    && ui
-                        .add(egui::Button::new(RichText::new("Check").strong()).min_size(half))
-                        .clicked()
+                    && crate::ui::primary_button(ui, &pal, "Check", half).clicked()
                 {
                     actions.push(KeyAction::Enter);
                 }
@@ -733,7 +737,7 @@ impl DrillState {
                     let total = crate::keypad::keypad_width(key) + 150.0;
                     ui.add_space(((ui.available_width() - total) / 2.0).max(0.0));
                     let pad = |ui: &mut Ui, actions: &mut Vec<KeyAction>| {
-                        if let Some(a) = keypad(ui, left, key) {
+                        if let Some(a) = keypad(ui, &pal, left, key) {
                             actions.push(a);
                         }
                     };
@@ -773,7 +777,8 @@ impl DrillState {
                             self.last_move = now;
                         }
                         if self.phase == Phase::Working
-                            && ui.button(RichText::new("Check").strong()).clicked()
+                            && crate::ui::primary_button(ui, &pal, "Check", egui::vec2(0.0, 0.0))
+                                .clicked()
                         {
                             actions.push(KeyAction::Enter);
                         }
@@ -787,7 +792,8 @@ impl DrillState {
                             .monospace()
                             .color(pal.ink_soft),
                     );
-                    if ui.button(RichText::new("Check").strong()).clicked() {
+                    if crate::ui::primary_button(ui, &pal, "Check", egui::vec2(0.0, 0.0)).clicked()
+                    {
                         actions.push(KeyAction::Enter);
                     }
                 }
@@ -884,11 +890,16 @@ impl DrillState {
         };
         ui.vertical_centered(|ui| {
             ui.add_space(24.0);
-            ui.heading(match self.mode {
-                DrillMode::Guided => "Practice done",
-                DrillMode::Sprint { .. } => "Sprint over",
-                _ => "Drill done",
-            });
+            ui.label(
+                RichText::new(match self.mode {
+                    DrillMode::Guided => "Practice done",
+                    DrillMode::Sprint { .. } => "Sprint over",
+                    _ => "Drill done",
+                })
+                .size(crate::ui::size::PROMPT)
+                .strong()
+                .color(pal.ink),
+            );
             ui.add_space(8.0);
             ui.label(RichText::new(format!("{correct} of {total} correct")).size(24.0));
             if total > 0 {
@@ -903,15 +914,19 @@ impl DrillState {
             ui.horizontal(|ui| {
                 if let Some(next) = app.pending_drills.first() {
                     let label = format!("Next: {}", next.skill.name());
-                    if ui.button(RichText::new(label).strong()).clicked() {
+                    if crate::ui::primary_button(ui, &pal, &label, egui::vec2(0.0, 0.0)).clicked() {
                         app.start_next_pending();
                         return;
                     }
                 } else {
                     if self.mode == DrillMode::Guided
-                        && ui
-                            .button(RichText::new("Start the drill").strong())
-                            .clicked()
+                        && crate::ui::primary_button(
+                            ui,
+                            &pal,
+                            "Start the drill",
+                            egui::vec2(0.0, 0.0),
+                        )
+                        .clicked()
                     {
                         let mut spec = self.spec.clone();
                         spec.items = 10;
@@ -919,11 +934,11 @@ impl DrillState {
                         return;
                     }
                     let again = if self.mode == DrillMode::Guided {
-                        RichText::new("Practice again")
+                        ui.button("Practice again")
                     } else {
-                        RichText::new("Again").strong()
+                        crate::ui::primary_button(ui, &pal, "Again", egui::vec2(0.0, 0.0))
                     };
-                    if ui.button(again).clicked() {
+                    if again.clicked() {
                         let spec = self.spec.clone();
                         let mode = self.mode;
                         app.start_drill(spec, mode);

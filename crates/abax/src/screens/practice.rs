@@ -1,6 +1,6 @@
 //! Free practice: the soroban, a keypad, a number display, nothing else.
 
-use egui::{Align, Layout, RichText, Ui};
+use egui::{RichText, Ui};
 
 use crate::keypad::{keyboard_actions, keypad_centered, KeyAction};
 use crate::soroban_view::SorobanView;
@@ -20,6 +20,7 @@ pub fn rod_keyboard(view: &mut SorobanView, a: KeyAction, now: f64) {
                 view.motion.user_move,
                 0.0,
             );
+            view.flash_rod(rod, now);
             view.active_rod = Some((rod + 1).min(n - 1));
         }
         KeyAction::Backspace => {
@@ -37,6 +38,7 @@ pub fn rod_keyboard(view: &mut SorobanView, a: KeyAction, now: f64) {
                 view.motion.user_move,
                 0.0,
             );
+            view.flash_rod(target, now);
             view.active_rod = Some(target);
         }
         KeyAction::Clear => view.clear(now),
@@ -47,36 +49,39 @@ pub fn rod_keyboard(view: &mut SorobanView, a: KeyAction, now: f64) {
 pub fn show(app: &mut App, ui: &mut Ui) {
     let now = ui.input(|i| i.time);
     let pal = app.palette;
-    ui.horizontal(|ui| {
-        if ui.button("Back").clicked() {
-            app.go_home();
+    let mut rods = app.view.rod_count();
+    let mut clear = false;
+    let back = crate::ui::header(ui, &pal, None, "Free practice", |ui| {
+        if ui.button("Clear").clicked() {
+            clear = true;
         }
-        ui.label(RichText::new("Free practice").color(pal.ink_soft));
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            if ui.button("Clear").clicked() {
-                app.view.clear(now);
-            }
-            let mut rods = app.view.rod_count();
-            egui::ComboBox::from_id_salt("rods")
-                .selected_text(format!("{rods} rods"))
-                .width(90.0)
-                .show_ui(ui, |ui| {
-                    for n in abax_core::soroban::ROD_COUNTS {
-                        ui.selectable_value(&mut rods, n, format!("{n} rods"));
-                    }
-                });
-            if rods != app.view.rod_count() {
-                app.view.set_rod_count(rods);
-                app.save.settings.rod_count = rods;
-                app.mark_dirty();
-            }
-        });
+        egui::ComboBox::from_id_salt("rods")
+            .selected_text(format!("{rods} rods"))
+            .width(90.0)
+            .show_ui(ui, |ui| {
+                for n in abax_core::soroban::ROD_COUNTS {
+                    ui.selectable_value(&mut rods, n, format!("{n} rods"));
+                }
+            });
     });
+    if back {
+        app.go_home();
+        return;
+    }
+    if clear {
+        app.view.clear(now);
+    }
+    if rods != app.view.rod_count() {
+        app.view.set_rod_count(rods);
+        app.save.settings.rod_count = rods;
+        app.mark_dirty();
+    }
     ui.vertical_centered(|ui| {
         ui.label(
             RichText::new(app.view.model.value().to_string())
                 .size(34.0)
-                .monospace(),
+                .monospace()
+                .color(pal.ink),
         );
     });
     // Arrow keys move the active rod.
@@ -110,7 +115,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             ((ui.available_width() - 40.0) / 3.0).clamp(48.0, 96.0),
             44.0,
         );
-        if let Some(a) = keypad_centered(ui, app.save.settings.left_handed, key) {
+        if let Some(a) = keypad_centered(ui, &pal, app.save.settings.left_handed, key) {
             actions.push(a);
         }
     }

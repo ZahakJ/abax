@@ -3,7 +3,7 @@
 use abax_core::curriculum::{Level, SkillId, Timing};
 use abax_core::generator::{generate, Item};
 use abax_core::stats::{Attempt, DrillKind};
-use egui::{Align, Layout, RichText, Ui};
+use egui::{RichText, Ui};
 
 use crate::keypad::{keyboard_actions, keypad_centered, DigitBuffer, KeyAction};
 use crate::App;
@@ -81,6 +81,13 @@ impl FlashState {
         }
     }
 
+    /// Start the first round now (screenshots of the flashing phase).
+    pub fn begin(&mut self, app: &mut App, now: f64) {
+        self.round = 0;
+        self.results.clear();
+        self.start_round(app, now);
+    }
+
     fn start_round(&mut self, app: &mut App, now: f64) {
         let level = self.level();
         let item = {
@@ -107,56 +114,72 @@ impl FlashState {
     pub fn show(&mut self, app: &mut App, ui: &mut Ui) {
         let now = ui.input(|i| i.time);
         let pal = app.palette;
-        ui.horizontal(|ui| {
-            if ui.button("Back").clicked() {
-                app.go_home();
-            }
-            ui.label(RichText::new("Flash anzan").color(pal.ink_soft));
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                ui.label(
-                    RichText::new(format!(
-                        "{} numbers · {} digit{} · {:.1} s",
-                        self.count,
-                        self.digits,
-                        if self.digits == 1 { "" } else { "s" },
-                        self.interval_ms as f32 / 1000.0
-                    ))
-                    .color(pal.ink_soft),
-                );
-            });
-        });
+        let summary = format!(
+            "{} × {} digit{} · {:.1} s",
+            self.count,
+            self.digits,
+            if self.digits == 1 { "" } else { "s" },
+            self.interval_ms as f32 / 1000.0
+        );
+        if crate::ui::header(ui, &pal, None, "Flash anzan", |ui| {
+            ui.label(RichText::new(summary).color(pal.ink_soft));
+        }) {
+            app.go_home();
+            return;
+        }
 
         match self.phase.clone() {
             Phase::Ready => {
                 ui.vertical_centered(|ui| {
                     ui.add_space(20.0);
-                    ui.heading("Ready?");
+                    ui.label(
+                        RichText::new("Ready?")
+                            .size(crate::ui::size::PROMPT)
+                            .strong()
+                            .color(pal.ink),
+                    );
                     ui.label(
                         RichText::new("Add the numbers as they flash, then type the total.")
                             .color(pal.ink_soft),
                     );
+                    ui.add_space(12.0);
+                    // The three settings in a centred card.
+                    let w = ui.available_width().min(420.0);
+                    let pad = ((ui.available_width() - w) / 2.0).max(0.0);
+                    ui.horizontal(|ui| {
+                        ui.add_space(pad);
+                        ui.vertical(|ui| {
+                            ui.set_width(w);
+                            crate::ui::card(ui, &pal, |ui| {
+                                ui.spacing_mut().slider_width = (w - 230.0).clamp(80.0, 200.0);
+                                egui::Grid::new("flash-settings")
+                                    .num_columns(2)
+                                    .spacing([12.0, 10.0])
+                                    .show(ui, |ui| {
+                                        ui.label("Digits");
+                                        ui.add(egui::Slider::new(&mut self.digits, 1..=4));
+                                        ui.end_row();
+                                        ui.label("Numbers");
+                                        ui.add(egui::Slider::new(&mut self.count, 2..=20));
+                                        ui.end_row();
+                                        ui.label("Seconds each");
+                                        let mut secs = self.interval_ms as f32 / 1000.0;
+                                        if ui
+                                            .add(
+                                                egui::Slider::new(&mut secs, 0.2..=3.0)
+                                                    .step_by(0.1),
+                                            )
+                                            .changed()
+                                        {
+                                            self.interval_ms = (secs * 1000.0).round() as u16;
+                                        }
+                                        ui.end_row();
+                                    });
+                            });
+                        });
+                    });
                     ui.add_space(10.0);
-                    ui.horizontal(|ui| {
-                        ui.label("Digits");
-                        ui.add(egui::Slider::new(&mut self.digits, 1..=4));
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Numbers");
-                        ui.add(egui::Slider::new(&mut self.count, 2..=20));
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Seconds each");
-                        let mut secs = self.interval_ms as f32 / 1000.0;
-                        if ui
-                            .add(egui::Slider::new(&mut secs, 0.2..=3.0).step_by(0.1))
-                            .changed()
-                        {
-                            self.interval_ms = (secs * 1000.0).round() as u16;
-                        }
-                    });
-                    ui.add_space(10.0);
-                    if ui
-                        .button(RichText::new("Start").strong().size(20.0))
+                    if crate::ui::primary_button(ui, &pal, "Start", egui::vec2(140.0, 40.0))
                         .clicked()
                     {
                         if self.skill == SkillId::Anzan {
@@ -179,33 +202,33 @@ impl FlashState {
                 blank_until,
             } => {
                 ui.ctx().request_repaint();
+                // The flashed number: large tabular numerals in ink, no
+                // box; a small counter underneath.
                 let avail = ui.available_size();
                 let (rect, _) = ui
                     .allocate_exact_size(egui::vec2(avail.x, avail.y * 0.7), egui::Sense::hover());
                 let p = ui.painter();
-                p.rect_filled(rect, 12.0, pal.paper2);
+                let size = (rect.height() * 0.5).clamp(64.0, 220.0);
+                let n = self.numbers.get(index).copied().unwrap_or(0);
+                // Fit the widest number of this round in the width.
+                let digits = n.to_string().len().max(self.digits as usize) as f32;
+                let size = size.min(rect.width() / (digits * 0.62).max(1.0));
                 if now >= blank_until {
-                    let n = self.numbers.get(index).copied().unwrap_or(0);
                     p.text(
                         rect.center(),
                         egui::Align2::CENTER_CENTER,
                         n.to_string(),
-                        egui::FontId::monospace((rect.height() * 0.42).clamp(40.0, 180.0)),
+                        egui::FontId::monospace(size),
                         pal.ink,
                     );
                 }
-                // Progress dots.
-                let dot_y = rect.bottom() - 16.0;
-                for i in 0..self.numbers.len() {
-                    let x = rect.center().x
-                        + (i as f32 - (self.numbers.len() as f32 - 1.0) / 2.0) * 14.0;
-                    let c = if i <= index {
-                        pal.accent
-                    } else {
-                        crate::theme::with_alpha(pal.ink_soft, 0.4)
-                    };
-                    p.circle_filled(egui::pos2(x, dot_y), 3.5, c);
-                }
+                p.text(
+                    egui::pos2(rect.center().x, rect.bottom() - 14.0),
+                    egui::Align2::CENTER_CENTER,
+                    format!("{} / {}", index + 1, self.numbers.len()),
+                    egui::FontId::monospace(14.0),
+                    pal.ink_soft,
+                );
                 if now >= until {
                     let iv = self.interval_ms as f64 / 1000.0;
                     let gap = (iv * 0.12).clamp(0.04, 0.2);
@@ -236,7 +259,7 @@ impl FlashState {
                     ((ui.available_width() - 40.0) / 3.0).clamp(48.0, 96.0),
                     46.0,
                 );
-                if let Some(a) = keypad_centered(ui, app.save.settings.left_handed, key) {
+                if let Some(a) = keypad_centered(ui, &pal, app.save.settings.left_handed, key) {
                     actions.push(a);
                 }
                 for a in actions {
@@ -327,14 +350,21 @@ impl FlashState {
                 let correct = self.results.iter().filter(|r| r.0).count();
                 ui.vertical_centered(|ui| {
                     ui.add_space(20.0);
-                    ui.heading("Round done");
+                    ui.label(
+                        RichText::new("Round done")
+                            .size(crate::ui::size::PROMPT)
+                            .strong()
+                            .color(pal.ink),
+                    );
                     ui.label(RichText::new(format!("{correct} of {total} correct")).size(24.0));
                     if let Some(m) = &self.stepped_msg {
                         ui.label(RichText::new(m).color(pal.ok));
                     }
                     ui.add_space(10.0);
                     ui.horizontal(|ui| {
-                        if ui.button(RichText::new("Again").strong()).clicked() {
+                        if crate::ui::primary_button(ui, &pal, "Again", egui::vec2(0.0, 0.0))
+                            .clicked()
+                        {
                             // Refresh the ladder step in case it moved.
                             let level = app.save.scheduler.current_level(self.skill);
                             if self.skill != SkillId::Anzan {

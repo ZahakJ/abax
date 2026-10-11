@@ -15,32 +15,35 @@ impl StatsState {
     pub fn show(&mut self, app: &mut App, ui: &mut Ui) {
         let pal = app.palette;
         let now = crate::storage::now_unix();
-        ui.horizontal(|ui| {
-            if ui.button("Back").clicked() {
-                app.go_home();
-            }
-            ui.heading("Stats");
-        });
+        if crate::ui::header(ui, &pal, None, "Stats", |_| {}) {
+            app.go_home();
+            return;
+        }
         egui::ScrollArea::vertical().show(ui, |ui| {
             let mom = app.save.history.momentum(now);
-            ui.horizontal_wrapped(|ui| {
-                stat(ui, &pal, "items, 14 days", &mom.items_14d.to_string());
-                stat(
-                    ui,
-                    &pal,
-                    "minutes, 14 days",
-                    &format!("{:.0}", mom.minutes_14d),
-                );
-                stat(ui, &pal, "days active", &mom.days_active_14d.to_string());
-                stat(
-                    ui,
-                    &pal,
+            let tiles = [
+                ("items, 14 days", mom.items_14d.to_string()),
+                ("minutes, 14 days", format!("{:.0}", mom.minutes_14d)),
+                ("days active", mom.days_active_14d.to_string()),
+                (
                     "momentum",
-                    &format!("{}%", (mom.carried * 100.0).round() as i32),
-                );
-            });
-            ui.add_space(6.0);
-            ui.label(RichText::new("Items per day").strong());
+                    format!("{}%", (mom.carried * 100.0).round() as i32),
+                ),
+            ];
+            // Equal tiles: one row of four, or two by two on phones.
+            let gap = 10.0;
+            let cols = if ui.available_width() < 520.0 { 2 } else { 4 };
+            let tile_w = (ui.available_width() - gap * (cols as f32 - 1.0)) / cols as f32;
+            for row in tiles.chunks(cols) {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = gap;
+                    for (label, value) in row {
+                        stat(ui, &pal, label, value, tile_w);
+                    }
+                });
+                ui.add_space(gap - ui.spacing().item_spacing.y);
+            }
+            crate::ui::section(ui, &pal, "Items per day");
             let days = app.save.history.daily_totals(now, 14);
             let values: Vec<f32> = days.iter().map(|d| d.items as f32).collect();
             let labels: Vec<String> = days
@@ -52,8 +55,7 @@ impl StatsState {
                 .collect();
             charts::bars(ui, &pal, &values, &labels, 150.0, "");
 
-            ui.add_space(10.0);
-            ui.label(RichText::new("Skills").strong());
+            crate::ui::section(ui, &pal, "Skills");
             for skill in SkillId::ALL {
                 let unlocked = app.save.scheduler.is_unlocked(skill);
                 let mastered = app.save.scheduler.is_mastered(skill);
@@ -71,10 +73,9 @@ impl StatsState {
                 }
             }
 
-            ui.add_space(10.0);
             let skill = self.skill.unwrap_or(SkillId::AddSimple);
+            crate::ui::section(ui, &pal, "Detail");
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Detail").strong());
                 egui::ComboBox::from_id_salt("stats-skill")
                     .selected_text(skill.name())
                     .show_ui(ui, |ui| {
@@ -110,8 +111,7 @@ impl StatsState {
             let spd = app.save.history.speed_series(skill, 10);
             charts::line(ui, &pal, &spd, 120.0, None, &|v| format!("{v:.1}"), pal.ok);
 
-            ui.add_space(10.0);
-            ui.label(RichText::new("Recent sessions").strong());
+            crate::ui::section(ui, &pal, "Recent sessions");
             let sessions = app.save.history.sessions(20 * 60);
             for s in sessions.iter().rev().take(10) {
                 let mins = ((s.end - s.start) as f32 / 60.0).max(0.1);
@@ -131,15 +131,24 @@ impl StatsState {
     }
 }
 
-fn stat(ui: &mut Ui, pal: &crate::theme::Palette, label: &str, value: &str) {
+fn stat(ui: &mut Ui, pal: &crate::theme::Palette, label: &str, value: &str, width: f32) {
     egui::Frame::new()
         .fill(pal.paper2)
+        .stroke(egui::Stroke::new(1.0, crate::ui::hairline(pal)))
         .corner_radius(10)
-        .inner_margin(10)
+        .inner_margin(egui::Margin::symmetric(14, 10))
         .show(ui, |ui| {
+            // Frame margin (14 each side) and stroke are outside this width.
+            ui.set_width(width - 30.0);
             ui.vertical(|ui| {
-                ui.label(RichText::new(value).size(22.0).strong());
-                ui.label(RichText::new(label).color(pal.ink_soft).size(12.0));
+                ui.label(
+                    RichText::new(value)
+                        .size(22.0)
+                        .strong()
+                        .monospace()
+                        .color(pal.ink),
+                );
+                ui.label(RichText::new(label).color(pal.ink_soft).size(12.5));
             });
         });
 }

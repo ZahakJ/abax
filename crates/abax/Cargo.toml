@@ -18,6 +18,7 @@ path = "src/main.rs"
 abax-core = { path = "../abax-core" }
 egui = "0.36"
 log = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 eframe = { version = "0.36", default-features = false, features = ["wgpu", "default_fonts", "wayland", "x11"] }

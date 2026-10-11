@@ -25,7 +25,15 @@ pub fn bars(
         rect.max - vec2(pad, pad + label_h),
     );
     let slot = plot.width() / n;
-    let bar_w = (slot * 0.62).max(2.0);
+    let bar_w = (slot * 0.58).clamp(2.0, 28.0);
+    // Hairline gridlines at half and full scale.
+    for k in 1..=2 {
+        let y = plot.bottom() - plot.height() * k as f32 / 2.0;
+        p.line_segment(
+            [pos2(plot.left(), y), pos2(plot.right(), y)],
+            Stroke::new(1.0, with_alpha(pal.ink_soft, 0.16)),
+        );
+    }
     // Baseline.
     p.line_segment(
         [
@@ -48,7 +56,15 @@ pub fn bars(
             with_alpha(pal.accent, 0.55)
         };
         if h > 0.0 {
-            p.rect(r, 3.0, col, Stroke::NONE, StrokeKind::Inside);
+            // Rounded top, square foot on the baseline.
+            let rad = (bar_w * 0.5).min(6.0).min(h) as u8;
+            let cr = egui::CornerRadius {
+                nw: rad,
+                ne: rad,
+                sw: 0,
+                se: 0,
+            };
+            p.rect(r, cr, col, Stroke::NONE, StrokeKind::Inside);
             p.text(
                 pos2(x, r.top() - 2.0),
                 Align2::CENTER_BOTTOM,
@@ -116,7 +132,7 @@ pub fn line(
             [pos2(plot.left(), y), pos2(plot.right(), y)],
             Stroke::new(
                 1.0,
-                with_alpha(pal.ink_soft, if k == 0 { 0.5 } else { 0.18 }),
+                with_alpha(pal.ink_soft, if k == 0 { 0.5 } else { 0.16 }),
             ),
         );
         let v = lo + (hi - lo) * k as f32 / 2.0;
@@ -223,8 +239,8 @@ pub fn mastery_bar(
     );
     p.rect(
         bar,
-        4.0,
-        with_alpha(pal.ink_soft, 0.18),
+        bar.height() * 0.5,
+        with_alpha(pal.ink_soft, 0.16),
         Stroke::NONE,
         StrokeKind::Inside,
     );
@@ -237,7 +253,15 @@ pub fn mastery_bar(
             ),
         );
         let c = if mastered { pal.ok } else { pal.accent };
-        p.rect(fill, 4.0, c, Stroke::NONE, StrokeKind::Inside);
+        if fill.width() > 0.5 {
+            p.rect(
+                fill,
+                bar.height() * 0.5,
+                c,
+                Stroke::NONE,
+                StrokeKind::Inside,
+            );
+        }
     }
     let txt = if locked {
         "locked".to_string()
