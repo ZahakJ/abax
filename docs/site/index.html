@@ -1,1 +1,164 @@
-<!doctype html><title>Abax</title>Placeholder.
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abax, a soroban trainer</title>
+<meta name="description" content="Abax teaches the soroban (Japanese abacus) move by move: the finger rules, drills that adapt to you, then anzan and flash anzan. Free and open source for Linux, Windows, macOS and Android.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F4EDE0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1A17" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Abax, a soroban trainer">
+<meta property="og:description" content="Learn the soroban move by move, then carry it in your head. Free, offline, for Linux, Windows, macOS and Android.">
+<meta property="og:url" content="https://zahakj.github.io/abax/">
+<meta property="og:image" content="https://zahakj.github.io/abax/screenshots/hero.png">
+<meta property="og:image:width" content="976">
+<meta property="og:image:height" content="370">
+<meta property="og:image:alt" content="The Abax soroban: bone beads on bamboo rods in a lacquered walnut frame.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="icon-256.png">
+<link rel="apple-touch-icon" href="icon-256.png">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./"><img src="icon-256.png" alt="" width="28" height="28"><span>Abax</span></a>
+    <nav aria-label="Main">
+      <a href="manual/">Manual</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/ZahakJ/abax">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <h1>Learn the soroban move by move, then carry it in your head.</h1>
+      <p class="lede">Abax is a soroban (Japanese abacus) trainer. It shows every bead move with the finger that makes it, drills each rule until it is quick, and then takes the beads away.</p>
+      <p class="cta">
+        <a class="btn btn-primary" href="#download">Download</a>
+        <a class="btn" href="manual/">Read the manual</a>
+      </p>
+      <figure class="panel">
+        <video id="hero-video" class="hero-media" width="976" height="370" muted loop playsinline preload="metadata" poster="screenshots/hero.png" aria-label="Beads moving on the Abax soroban as it sets three numbers in turn.">
+          <source src="screenshots/hero.webm" type="video/webm">
+          <source src="screenshots/hero.mp4" type="video/mp4">
+          <img src="screenshots/hero.png" alt="The Abax soroban: bone beads on bamboo rods in a lacquered walnut frame.">
+        </video>
+      </figure>
+      <p class="facts">Open source, free, offline, no account. Linux, Windows, macOS and Android.</p>
+    </div>
+  </section>
+
+  <section class="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <h2 id="how-title">How it teaches</h2>
+      <div class="shots">
+        <figure>
+          <picture>
+            <source srcset="screenshots/lesson-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshots/lesson-light.png" width="1000" height="720" loading="lazy" alt="A lesson: the heaven bead to move is ringed in vermilion, with an arrow and the line 'Index finger: push the heaven bead down'.">
+          </picture>
+          <figcaption><strong>Lessons</strong> explain one rule in plain words, then show it on the beads: the bead to move is ringed, with an arrow and the finger to use.</figcaption>
+        </figure>
+        <figure>
+          <picture>
+            <source srcset="screenshots/drill-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshots/drill-light.png" width="1000" height="720" loading="lazy" alt="A drill item, 6 + 5 + 6, with the first number set on the soroban and a keypad below.">
+          </picture>
+          <figcaption><strong>Drills</strong> are worked on the beads. Stall and the next move appears; get it wrong and the correct moves replay, in order.</figcaption>
+        </figure>
+        <figure>
+          <picture>
+            <source srcset="screenshots/flash-run-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshots/flash-run-light.png" width="1000" height="720" loading="lazy" alt="Flash anzan: the number 90 shown large, second of three.">
+          </picture>
+          <figcaption><strong>Flash anzan</strong> shows numbers one at a time, faster step by step. You add them on the soroban in your head.</figcaption>
+        </figure>
+      </div>
+      <p class="aside">A scheduler tracks each skill: how likely you are to know it, how accurate and how fast you are lately, and how hard the current step is for you. Each session is a short warm-up, a focus drill on your weakest skill and a cool-down. Progress is shown as momentum over 14 days, not as a streak that breaks. <a href="manual/scheduler.html">How the scheduler works</a>.</p>
+    </div>
+  </section>
+
+  <section class="path" aria-labelledby="path-title">
+    <div class="wrap">
+      <h2 id="path-title">The curriculum at a glance</h2>
+      <p class="sub">Fifteen skills. Each unlocks when the ones before it are known well enough.</p>
+      <ol class="stages">
+        <li><span class="stage">Beads</span>
+          <ul><li><b>S0</b> Read and set numbers</li><li><b>S1</b> Add directly</li><li><b>S2</b> Subtract directly</li></ul></li>
+        <li><span class="stage">Small friends</span>
+          <ul><li><b>S3</b> Add through 5</li><li><b>S4</b> Subtract through 5</li></ul></li>
+        <li><span class="stage">Big friends</span>
+          <ul><li><b>S5</b> Add through 10</li><li><b>S6</b> Subtract through 10</li><li><b>S7</b> Both at once</li></ul></li>
+        <li><span class="stage">Longer numbers</span>
+          <ul><li><b>S8</b> Multi-digit addition</li><li><b>S9</b> Mixed chains</li></ul></li>
+        <li><span class="stage">Multiply and divide</span>
+          <ul><li><b>S10</b> Multiplication</li><li><b>S11</b> Division</li></ul></li>
+        <li><span class="stage">In your head</span>
+          <ul><li><b>A1</b> Anzan, fading beads</li><li><b>A2</b> Flash anzan, 1 digit</li><li><b>A3</b> Flash anzan, 2 and 3 digits</li></ul></li>
+      </ol>
+      <p class="more"><a href="manual/curriculum.html">Each skill, its rule and its examples</a></p>
+    </div>
+  </section>
+
+  <section class="finishes" aria-labelledby="finish-title">
+    <div class="wrap">
+      <h2 id="finish-title">Three finishes</h2>
+      <div class="finish-row">
+        <figure>
+          <picture>
+            <source srcset="screenshots/practice-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshots/practice-light.png" width="1000" height="720" loading="lazy" alt="Walnut finish: lacquered walnut frame, bamboo rods, bone beads.">
+          </picture>
+          <figcaption><strong>Walnut</strong> bone beads, bamboo rods</figcaption>
+        </figure>
+        <figure>
+          <picture>
+            <source srcset="screenshots/practice-ebony-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshots/practice-ebony-light.png" width="1000" height="720" loading="lazy" alt="Ebony finish: near-black frame, brass rods and beam, bone beads.">
+          </picture>
+          <figcaption><strong>Ebony</strong> bone beads, brass rods</figcaption>
+        </figure>
+        <figure>
+          <picture>
+            <source srcset="screenshots/practice-maple-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshots/practice-maple-light.png" width="1000" height="720" loading="lazy" alt="Maple finish: pale maple frame, steel rods, slate beads.">
+          </picture>
+          <figcaption><strong>Maple</strong> slate beads, steel rods</figcaption>
+        </figure>
+      </div>
+      <p class="sub">Drawn on the GPU: each bead is lit as a solid, with a highlight, a soft edge and a contact shadow. Light and dark themes for each.</p>
+    </div>
+  </section>
+
+  <section class="download" id="download" aria-labelledby="dl-title">
+    <div class="wrap">
+      <h2 id="dl-title">Download</h2>
+      <p class="release" id="release-line">The latest release is on <a href="https://github.com/ZahakJ/abax/releases/latest">GitHub</a>.</p>
+      <div class="dl-grid" id="dl-grid">
+        <a class="dl" data-suffix="-linux-x86_64.tar.gz" data-platform="linux" href="https://github.com/ZahakJ/abax/releases/latest"><span class="dl-name">Linux</span><span class="dl-meta">x86_64, tar.gz</span></a>
+        <a class="dl" data-suffix="-windows-x86_64.zip" data-platform="windows" href="https://github.com/ZahakJ/abax/releases/latest"><span class="dl-name">Windows</span><span class="dl-meta">x86_64, zip</span></a>
+        <a class="dl" data-suffix="-macos-aarch64.dmg" data-platform="mac-arm" href="https://github.com/ZahakJ/abax/releases/latest"><span class="dl-name">macOS, Apple silicon</span><span class="dl-meta">M1 and later, dmg</span></a>
+        <a class="dl" data-suffix="-macos-x86_64.dmg" data-platform="mac-intel" href="https://github.com/ZahakJ/abax/releases/latest"><span class="dl-name">macOS, Intel</span><span class="dl-meta">x86_64, dmg</span></a>
+        <a class="dl" data-suffix="-android-arm64-v8a.apk" data-platform="android" href="https://github.com/ZahakJ/abax/releases/latest"><span class="dl-name">Android</span><span class="dl-meta">arm64, almost every phone, apk</span></a>
+        <a class="dl" data-suffix="-android-universal.apk" data-platform="android-universal" href="https://github.com/ZahakJ/abax/releases/latest"><span class="dl-name">Android, universal</span><span class="dl-meta">adds 32-bit ARM and x86_64, apk</span></a>
+      </div>
+      <p class="dl-note" id="dl-note" hidden></p>
+      <p class="fine">Android 7.0 or newer. The desktop builds are not code-signed: on Windows choose "More info" then "Run anyway"; on macOS right-click the app and choose Open the first time. <a id="sums" href="https://github.com/ZahakJ/abax/releases/latest">SHA256SUMS.txt</a> lists the checksums. <a href="manual/getting-started.html">Install instructions</a>.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-row">
+    <p>Abax is free software under the <a href="https://github.com/ZahakJ/abax/blob/main/LICENSE">MIT licence</a>.</p>
+    <p><a href="manual/">Manual</a> · <a href="https://github.com/ZahakJ/abax">Source</a> · <a href="https://github.com/ZahakJ/abax/releases">Releases</a> · <a href="https://github.com/ZahakJ/abax/issues">Issues</a></p>
+  </div>
+</footer>
+</body>
+</html>

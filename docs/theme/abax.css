@@ -1,1 +1,303 @@
-/* Abax manual theme (filled in by the docs pass). */
+/* Abax manual theme: mdBook's "light" and "navy" themes in the Abax palette
+   (DESIGN.md). Paper, ink, lacquered walnut and one vermilion accent.
+   The other mdBook themes keep their own colours; the diagrams work in all
+   of them through the --abax-* variables below. */
+
+:root {
+  --content-max-width: 46rem;
+  /* Diagram defaults (used by any theme that does not override them). */
+  --abax-frame: #3b2a1e;
+  --abax-frame-edge: #6b4a2e;
+  --abax-well: #2a1d14;
+  --abax-rod: #b08d5b;
+  --abax-beam: #c9a66b;
+  --abax-bead: #efe6d6;
+  --abax-bead-edge: #8f7c63;
+  --abax-dot: #2a1d14;
+  --abax-accent: #c2452d;
+  --abax-soft: #6e6259;
+}
+
+/* ---------------------------------------------------------------- light */
+
+.light,
+html:not(.js) {
+  --bg: #f4ede0;
+  --fg: #2a2320;
+
+  --sidebar-bg: #eadfcc;
+  --sidebar-fg: #2a2320;
+  --sidebar-non-existant: #a69c90;
+  --sidebar-active: #c2452d;
+  --sidebar-spacer: #dccfb8;
+  --sidebar-header-border-color: #c2452d;
+
+  --scrollbar: #a69c90;
+  --icons: #6e6259;
+  --icons-hover: #2a2320;
+
+  --links: #a83a25;
+  --inline-code-color: #3b2a1e;
+
+  --theme-popup-bg: #f4ede0;
+  --theme-popup-border: #d3c4aa;
+  --theme-hover: #eadfcc;
+
+  --quote-bg: #eadfcc;
+  --quote-border: #c9a66b;
+  --warning-border: #b8862b;
+
+  --table-border-color: #dccfb8;
+  --table-header-bg: #eadfcc;
+  --table-alternate-bg: #efe6d6;
+
+  --searchbar-border-color: #c9b99c;
+  --searchbar-bg: #fbf7f0;
+  --searchbar-fg: #2a2320;
+  --searchbar-shadow-color: #c9b99c;
+  --searchresults-header-fg: #6e6259;
+  --searchresults-border-color: #c9b99c;
+  --searchresults-li-bg: #eadfcc;
+  --search-mark-bg: #e9c4b8;
+
+  --blockquote-note-color: #3b6e8f;
+  --blockquote-tip-color: #4f7a4a;
+  --blockquote-important-color: #7a4f8f;
+  --blockquote-warning-color: #9a6a1b;
+  --blockquote-caution-color: #c2452d;
+
+  --abax-soft: #6e6259;
+  --abax-accent: #c2452d;
+}
+
+/* ----------------------------------------------------------------- navy */
+
+.navy {
+  --bg: #1c1a17;
+  --fg: #ede6da;
+
+  --sidebar-bg: #26221e;
+  --sidebar-fg: #d9d0c3;
+  --sidebar-non-existant: #6e6459;
+  --sidebar-active: #e2765e;
+  --sidebar-spacer: #332d27;
+  --sidebar-header-border-color: #d8563b;
+
+  --scrollbar: #6e6459;
+  --icons: #a69c90;
+  --icons-hover: #ede6da;
+
+  --links: #e98a72;
+  --inline-code-color: #e6d4b8;
+
+  --theme-popup-bg: #26221e;
+  --theme-popup-border: #4a3f35;
+  --theme-hover: #332d27;
+
+  --quote-bg: #26221e;
+  --quote-border: #8c6f47;
+  --warning-border: #d4a440;
+
+  --table-border-color: #3a332c;
+  --table-header-bg: #2f2924;
+  --table-alternate-bg: #221f1b;
+
+  --searchbar-border-color: #4a3f35;
+  --searchbar-bg: #26221e;
+  --searchbar-fg: #ede6da;
+  --searchbar-shadow-color: #000;
+  --searchresults-header-fg: #a69c90;
+  --searchresults-border-color: #4a3f35;
+  --searchresults-li-bg: #2f2924;
+  --search-mark-bg: #5c2a20;
+
+  --blockquote-note-color: #7fb0d0;
+  --blockquote-tip-color: #7faf78;
+  --blockquote-important-color: #b99ad0;
+  --blockquote-warning-color: #d4a440;
+  --blockquote-caution-color: #e2765e;
+
+  --abax-frame: #2c1f16;
+  --abax-frame-edge: #4a3424;
+  --abax-well: #15100c;
+  --abax-rod: #8c6f47;
+  --abax-beam: #a8894f;
+  --abax-bead: #e6dac4;
+  --abax-bead-edge: #7d6c55;
+  --abax-dot: #15100c;
+  --abax-accent: #d8563b;
+  --abax-soft: #a69c90;
+}
+
+.coal, .ayu, .rust {
+  --abax-soft: var(--sidebar-fg);
+}
+
+/* ------------------------------------------------------------ typography */
+
+.content {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+
+.content main {
+  font-variant-numeric: tabular-nums;
+}
+
+.content h1,
+.content h2,
+.content h3 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+
+.content h1 {
+  border-bottom: 2px solid var(--abax-accent);
+  padding-bottom: 0.25em;
+}
+
+.light .content code,
+.navy .content code {
+  border-radius: 4px;
+}
+
+.light .content :not(pre) > code {
+  background: #eadfcc;
+}
+
+.navy .content :not(pre) > code {
+  background: #2f2924;
+}
+
+.light pre > code.hljs,
+.light pre {
+  background: #eee5d5;
+}
+
+.navy pre > code.hljs,
+.navy pre {
+  background: #24201c;
+}
+
+.content table {
+  font-size: 0.95em;
+}
+
+.content table td,
+.content table th {
+  padding: 0.35em 0.75em;
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.content figure {
+  margin: 1.5em 0;
+}
+
+.content figcaption {
+  font-size: 0.9em;
+  color: var(--abax-soft);
+  margin-top: 0.4em;
+}
+
+.light .chapter li.chapter-item a.active,
+.navy .chapter li.chapter-item a.active {
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------- diagrams */
+
+.abax-diagram {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+  height: auto;
+  margin: 1.25em auto;
+  color: var(--fg);
+}
+
+.abax-diagram .sb-frame {
+  fill: var(--abax-frame);
+  stroke: var(--abax-frame-edge);
+  stroke-width: 1.5;
+}
+
+.abax-diagram .sb-well {
+  fill: var(--abax-well);
+}
+
+.abax-diagram .sb-rod {
+  stroke: var(--abax-rod);
+  stroke-width: 3;
+}
+
+.abax-diagram .sb-beam {
+  fill: var(--abax-beam);
+}
+
+.abax-diagram .sb-dot {
+  fill: var(--abax-dot);
+}
+
+.abax-diagram .sb-bead {
+  fill: var(--abax-bead);
+  stroke: var(--abax-bead-edge);
+  stroke-width: 1;
+}
+
+.abax-diagram .sb-move {
+  stroke: var(--abax-accent);
+  stroke-width: 2.5;
+}
+
+.abax-diagram .sb-ghost {
+  fill: none;
+  stroke: var(--abax-bead);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.55;
+}
+
+.abax-diagram .sb-arrow {
+  stroke: var(--abax-accent);
+  stroke-width: 2.5;
+}
+
+.abax-diagram .sb-arrowhead {
+  fill: var(--abax-accent);
+}
+
+.abax-diagram .sb-leader {
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.abax-diagram text {
+  fill: currentColor;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  font-size: 14px;
+}
+
+.abax-diagram .sb-num {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-size: 15px;
+}
+
+.abax-diagram .sb-step {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.abax-diagram .sb-soft {
+  fill: var(--abax-soft);
+}
+
+.abax-diagram .sb-small {
+  font-size: 12.5px;
+}
