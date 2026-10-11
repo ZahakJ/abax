@@ -1,0 +1,9 @@
+[package]
+name = "abax-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Soroban model, complement rules, curriculum and adaptive scheduler for Abax"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
