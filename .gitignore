@@ -1,0 +1,7 @@
+/target
+/dist
+/android/jniLibs
+/android/build
+*.keystore
+*.env
+/screenshots/*.tmp

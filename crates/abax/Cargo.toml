@@ -1,0 +1,29 @@
+[package]
+name = "abax"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Abax: a soroban (Japanese abacus) trainer"
+
+[lib]
+name = "abax"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[[bin]]
+name = "abax"
+path = "src/main.rs"
+
+[dependencies]
+abax-core = { path = "../abax-core" }
+eframe = { version = "0.36", default-features = false, features = ["wgpu", "default_fonts", "wayland", "x11"] }
+egui = "0.36"
+log = "0.4"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+env_logger = "0.11"
+
+[target.'cfg(target_os = "android")'.dependencies]
+eframe = { version = "0.36", default-features = false, features = ["wgpu", "default_fonts", "android-native-activity"] }
+android_logger = "0.15"
+winit = { version = "0.30", default-features = false, features = ["android-native-activity"] }
