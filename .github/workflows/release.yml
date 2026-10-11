@@ -1,0 +1,204 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: Linux x86_64
+    # ubuntu-22.04 links against an older glibc, so the binary runs on more distros.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libasound2-dev libxkbcommon-dev libwayland-dev \
+            libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+      - name: Build
+        run: cargo build --release -p abax
+
+      # Tarball with a top-level directory: binary, desktop entry, icon, installer, docs.
+      - name: Package
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          NAME="abax-${TAG}-linux-x86_64"
+          mkdir -p "dist/${NAME}"
+          cp target/release/abax "dist/${NAME}/"
+          cp packaging/abax.desktop packaging/icon-256.png packaging/install.sh "dist/${NAME}/"
+          cp README.md LICENSE "dist/${NAME}/"
+          chmod +x "dist/${NAME}/abax" "dist/${NAME}/install.sh"
+          tar -C dist -czf "dist/${NAME}.tar.gz" "${NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  windows:
+    name: Windows x86_64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release -p abax
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $Tag = $env:GITHUB_REF_NAME
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path target/release/abax.exe, README.md, LICENSE `
+            -DestinationPath "dist/abax-$Tag-windows-x86_64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86_64
+          path: dist/*.zip
+          if-no-files-found: error
+
+  macos:
+    name: macOS ${{ matrix.arch }}
+    # Both architectures cross-compile on one Apple Silicon runner via --target.
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            arch: aarch64
+          - target: x86_64-apple-darwin
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release -p abax --target ${{ matrix.target }}
+
+      # The .app is NOT code-signed or notarized. On first launch users must
+      # right-click > Open, or run: xattr -dr com.apple.quarantine /Applications/Abax.app
+      - name: Build Abax.app and DMG
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          ARCH="${{ matrix.arch }}"
+          chmod +x packaging/make-app.sh
+          packaging/make-app.sh "target/${{ matrix.target }}/release/abax" "dist/${ARCH}"
+          hdiutil create -volname Abax -srcfolder "dist/${ARCH}/Abax.app" -ov -format UDZO \
+            "dist/abax-${TAG}-macos-${ARCH}.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  android:
+    name: Android APKs
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 27.2.12479018
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail early with a clear message instead of shipping a debug-signed APK.
+      - name: Check signing secrets
+        if: ${{ secrets.ABAX_KEYSTORE_B64 == '' }}
+        run: |
+          echo "::error::ABAX_KEYSTORE_B64 secret is not set; refusing to publish a debug-signed APK."
+          exit 1
+
+      # apksigner needs a JDK.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Install Android SDK components
+        run: |
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "${SDKMANAGER}" --licenses > /dev/null || true
+          "${SDKMANAGER}" "platforms;android-35" "build-tools;35.0.0" "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ABAX_KEYSTORE_B64 }}
+        run: |
+          echo "${KEYSTORE_B64}" | base64 -d > "${RUNNER_TEMP}/abax-release.keystore"
+          echo "ABAX_KEYSTORE=${RUNNER_TEMP}/abax-release.keystore" >> "$GITHUB_ENV"
+
+      - name: Build APKs
+        env:
+          ABAX_KEYSTORE_PASSWORD: ${{ secrets.ABAX_KEYSTORE_PASSWORD }}
+          ABAX_KEY_ALIAS: ${{ secrets.ABAX_KEY_ALIAS }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          chmod +x android/build-apk.sh
+          android/build-apk.sh --abis "arm64-v8a" --out "dist/abax-${TAG}-android-arm64-v8a.apk"
+          android/build-apk.sh --abis "arm64-v8a armeabi-v7a x86_64" --out "dist/abax-${TAG}-android-universal.apk"
+
+      - name: Verify APK signatures
+        run: |
+          for apk in dist/*.apk; do
+            "${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: dist/*.apk
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [linux, windows, macos, android]
+    runs-on: ubuntu-latest
+    steps:
+      # merge-multiple flattens every artifact into one directory.
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS.txt
+        working-directory: release
+        run: |
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
