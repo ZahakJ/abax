@@ -5,3 +5,5 @@
 *.keystore
 *.env
 /screenshots/*.tmp
+/.scratch
+/site-out

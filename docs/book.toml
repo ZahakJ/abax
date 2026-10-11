@@ -1,0 +1,23 @@
+[book]
+title = "Abax manual"
+authors = ["ZahakJ"]
+language = "en"
+src = "manual"
+
+[build]
+create-missing = false
+
+[output.html]
+site-url = "/abax/manual/"
+git-repository-url = "https://github.com/ZahakJ/abax"
+edit-url-template = "https://github.com/ZahakJ/abax/edit/main/docs/manual/{path}"
+default-theme = "light"
+preferred-dark-theme = "navy"
+additional-css = ["theme/abax.css"]
+no-section-label = true
+
+[output.html.fold]
+enable = false
+
+[output.html.search]
+limit-results = 20
