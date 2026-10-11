@@ -23,7 +23,11 @@ pub struct Palette {
 }
 
 const fn c(hex: u32) -> Color32 {
-    Color32::from_rgb(((hex >> 16) & 0xff) as u8, ((hex >> 8) & 0xff) as u8, (hex & 0xff) as u8)
+    Color32::from_rgb(
+        ((hex >> 16) & 0xff) as u8,
+        ((hex >> 8) & 0xff) as u8,
+        (hex & 0xff) as u8,
+    )
 }
 
 pub const LIGHT: Palette = Palette {
@@ -75,11 +79,7 @@ impl Palette {
         v.panel_fill = self.paper;
         v.window_fill = self.paper2;
         v.faint_bg_color = self.paper2;
-        v.extreme_bg_color = if self.dark {
-            c(0x141210)
-        } else {
-            c(0xFBF7EF)
-        };
+        v.extreme_bg_color = if self.dark { c(0x141210) } else { c(0xFBF7EF) };
         v.code_bg_color = self.paper2;
         v.hyperlink_color = self.accent;
         v.warn_fg_color = self.warn;
@@ -123,8 +123,17 @@ impl Palette {
 
 /// Linear blend of two colours in gamma space (good enough for UI tints).
 pub fn mix(a: Color32, b: Color32, t: f32) -> Color32 {
-    let l = |x: u8, y: u8| (x as f32 + (y as f32 - x as f32) * t).round().clamp(0.0, 255.0) as u8;
-    Color32::from_rgba_premultiplied(l(a.r(), b.r()), l(a.g(), b.g()), l(a.b(), b.b()), l(a.a(), b.a()))
+    let l = |x: u8, y: u8| {
+        (x as f32 + (y as f32 - x as f32) * t)
+            .round()
+            .clamp(0.0, 255.0) as u8
+    };
+    Color32::from_rgba_premultiplied(
+        l(a.r(), b.r()),
+        l(a.g(), b.g()),
+        l(a.b(), b.b()),
+        l(a.a(), b.a()),
+    )
 }
 
 pub fn with_alpha(c: Color32, alpha: f32) -> Color32 {
@@ -134,15 +143,30 @@ pub fn with_alpha(c: Color32, alpha: f32) -> Color32 {
 /// Install fonts sizes and spacing once.
 pub fn apply_style(ctx: &egui::Context, palette: &Palette, large_text: bool) {
     ctx.set_visuals(palette.visuals());
-    ctx.style_mut(|style| {
+    ctx.all_styles_mut(|style| {
         use egui::{FontFamily, FontId, TextStyle};
         let scale = if large_text { 1.22 } else { 1.0 };
         style.text_styles = [
-            (TextStyle::Heading, FontId::new(26.0 * scale, FontFamily::Proportional)),
-            (TextStyle::Body, FontId::new(16.0 * scale, FontFamily::Proportional)),
-            (TextStyle::Button, FontId::new(16.0 * scale, FontFamily::Proportional)),
-            (TextStyle::Small, FontId::new(12.5 * scale, FontFamily::Proportional)),
-            (TextStyle::Monospace, FontId::new(16.0 * scale, FontFamily::Monospace)),
+            (
+                TextStyle::Heading,
+                FontId::new(26.0 * scale, FontFamily::Proportional),
+            ),
+            (
+                TextStyle::Body,
+                FontId::new(16.0 * scale, FontFamily::Proportional),
+            ),
+            (
+                TextStyle::Button,
+                FontId::new(16.0 * scale, FontFamily::Proportional),
+            ),
+            (
+                TextStyle::Small,
+                FontId::new(12.5 * scale, FontFamily::Proportional),
+            ),
+            (
+                TextStyle::Monospace,
+                FontId::new(16.0 * scale, FontFamily::Monospace),
+            ),
         ]
         .into();
         style.spacing.item_spacing = egui::vec2(10.0, 8.0);

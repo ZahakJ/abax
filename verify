@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Release gate: formatting, lints, tests, release desktop build.
+set -euo pipefail
+cd "$(dirname "$0")"
+export PATH="$HOME/.cargo/bin:$PATH"
+export CARGO_TERM_COLOR="${CARGO_TERM_COLOR:-always}"
+
+step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
+
+step "cargo fmt --check"
+cargo fmt --all -- --check
+
+step "cargo clippy (all targets, warnings are errors)"
+cargo clippy --workspace --all-targets -- -D warnings
+
+step "cargo test"
+cargo test --workspace
+
+step "cargo build --release -p abax"
+cargo build --release -p abax
+
+step "binary"
+bin=target/release/abax
+[ -x "$bin" ] || { echo "missing $bin"; exit 1; }
+ls -la "$bin"
+printf '\n\033[32mverify: all green\033[0m\n'

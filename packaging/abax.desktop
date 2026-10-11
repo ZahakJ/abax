@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Abax
+GenericName=Soroban trainer
+Comment=Learn and drill the Japanese abacus
+Exec=abax
+Icon=abax
+Terminal=false
+Categories=Education;Math;
+Keywords=soroban;abacus;anzan;arithmetic;
+StartupWMClass=abax

@@ -52,7 +52,7 @@ impl Tween {
     }
 
     fn done(&self, now: f64) -> bool {
-        self.duration <= 0.0 || now >= self.start + self.duration as f64
+        self.duration <= 0.0 || now + 1e-6 >= self.start + self.duration as f64
     }
 
     fn retarget(&mut self, now: f64, to: f32, duration: f32, delay: f32) {
@@ -259,7 +259,11 @@ impl SorobanView {
     /// Set one rod to `r`, animating beads that change.
     pub fn set_rod(&mut self, i: usize, r: Rod, now: f64, duration: f32, delay: f32) {
         let duration = if self.motion.reduce { 0.0 } else { duration };
-        let stagger = if self.motion.reduce { 0.0 } else { self.motion.stagger };
+        let stagger = if self.motion.reduce {
+            0.0
+        } else {
+            self.motion.stagger
+        };
         let a = &mut self.anim[i];
         let h = if r.heaven { 1.0 } else { 0.0 };
         a.heaven.retarget(now, h, duration, delay);
@@ -302,8 +306,8 @@ impl SorobanView {
     pub fn layout(&self, avail: Rect) -> Geometry {
         let n = self.rod_count() as f32;
         let frame_ratio = 0.9; // frame width in pitches
-        // Height in bead_h units: heaven (2 slots) + beam (0.9) + earth (5 slots)
-        // + frame top/bottom (0.8 each) + digits row (1.1).
+                               // Height in bead_h units: heaven (2 slots) + beam (0.9) + earth (5 slots)
+                               // + frame top/bottom (0.8 each) + digits row (1.1).
         let units_h = 2.0 + 0.9 + 5.0 + 1.6 + if self.show_digits { 1.1 } else { 0.0 };
         // bead_h = 0.52 * pitch.
         let pitch_from_w = avail.width() / (n + 2.0 * frame_ratio);
@@ -338,6 +342,13 @@ impl SorobanView {
         }
     }
 
+    /// The height the soroban wants for a given width (so screens can put
+    /// controls right under it instead of centring it in empty space).
+    pub fn natural_height(&self, width: f32) -> f32 {
+        let g = self.layout(Rect::from_min_size(pos2(0.0, 0.0), vec2(width, 100_000.0)));
+        g.rect.height() + 8.0
+    }
+
     /// Draw and handle input. Returns the bead moves the user made this frame.
     pub fn show(&mut self, ui: &mut Ui, palette: &Palette, desired: Vec2) -> Vec<BeadEvent> {
         let (outer, response) = ui.allocate_exact_size(desired, Sense::click_and_drag());
@@ -367,7 +378,12 @@ impl SorobanView {
         events
     }
 
-    fn handle_input(&mut self, response: &egui::Response, g: &Geometry, now: f64) -> Vec<BeadEvent> {
+    fn handle_input(
+        &mut self,
+        response: &egui::Response,
+        g: &Geometry,
+        now: f64,
+    ) -> Vec<BeadEvent> {
         let mut events = Vec::new();
         let allow_tap = matches!(self.input, InputMode::Tap | InputMode::Both);
         let allow_drag = matches!(self.input, InputMode::Drag | InputMode::Both);
@@ -543,7 +559,13 @@ impl SorobanView {
             pos2(inner.left(), g.beam_top),
             pos2(inner.right(), g.beam_top + g.beam_h),
         );
-        painter.rect(beam, 2.0, pal.beam, Stroke::new(1.0, crate::theme::mix(pal.beam, Color32::BLACK, 0.3)), StrokeKind::Inside);
+        painter.rect(
+            beam,
+            2.0,
+            pal.beam,
+            Stroke::new(1.0, crate::theme::mix(pal.beam, Color32::BLACK, 0.3)),
+            StrokeKind::Inside,
+        );
         for i in 0..self.rod_count() {
             if self.model.has_unit_dot(i) {
                 painter.circle_filled(
@@ -559,10 +581,7 @@ impl SorobanView {
             if a < self.rod_count() {
                 let x = g.rod_x(a);
                 painter.rect_filled(
-                    Rect::from_center_size(
-                        pos2(x, inner.bottom() - 2.0),
-                        vec2(g.pitch * 0.7, 3.0),
-                    ),
+                    Rect::from_center_size(pos2(x, inner.bottom() - 2.0), vec2(g.pitch * 0.7, 3.0)),
                     1.5,
                     pal.accent,
                 );
@@ -587,7 +606,10 @@ impl SorobanView {
 
         // Digits.
         if self.show_digits {
-            let font = egui::FontId::new((g.pitch * 0.55).clamp(9.0, 22.0), egui::FontFamily::Monospace);
+            let font = egui::FontId::new(
+                (g.pitch * 0.55).clamp(9.0, 22.0),
+                egui::FontFamily::Monospace,
+            );
             let col = with_alpha(pal.bead, 0.85 * alpha.max(0.0));
             for i in 0..self.rod_count() {
                 let d = self.model.digit(i);
@@ -596,7 +618,11 @@ impl SorobanView {
                     egui::Align2::CENTER_CENTER,
                     d.to_string(),
                     font.clone(),
-                    if alpha > 0.05 { col } else { with_alpha(pal.bead, 0.0) },
+                    if alpha > 0.05 {
+                        col
+                    } else {
+                        with_alpha(pal.bead, 0.0)
+                    },
                 );
             }
         }
@@ -717,7 +743,11 @@ impl SorobanView {
                 Stroke::NONE,
             ));
             // Hole hint.
-            painter.circle_filled(c, (g.pitch * 0.05).clamp(1.0, 3.0), with_alpha(pal.frame, 0.35 * alpha));
+            painter.circle_filled(
+                c,
+                (g.pitch * 0.05).clamp(1.0, 3.0),
+                with_alpha(pal.frame, 0.35 * alpha),
+            );
         }
         if let Some(dir) = hint {
             let ring = lens(c.x, c.y, w + 3.0, h + 3.0);
@@ -727,7 +757,11 @@ impl SorobanView {
             ));
             // Arrow in the direction of travel.
             let s = (g.bead_h * 0.45).clamp(5.0, 14.0);
-            let ay = if dir > 0 { c.y + h + s * 0.9 } else { c.y - h - s * 0.9 };
+            let ay = if dir > 0 {
+                c.y + h + s * 0.9
+            } else {
+                c.y - h - s * 0.9
+            };
             let tip = pos2(c.x, if dir > 0 { ay + s * 0.6 } else { ay - s * 0.6 });
             let base = if dir > 0 { ay - s * 0.4 } else { ay + s * 0.4 };
             painter.add(Shape::convex_polygon(
@@ -798,7 +832,11 @@ mod tests {
         assert_eq!(v.hint_for_earth(1, 1), None);
         assert_eq!(v.hint_for_earth(1, 2), Some(-1));
         assert_eq!(v.hint_for_earth(1, 3), Some(-1));
-        v.hint = vec![Step::new(1, StepKind::EarthDown(1), abax_core::Rule::Direct)];
+        v.hint = vec![Step::new(
+            1,
+            StepKind::EarthDown(1),
+            abax_core::Rule::Direct,
+        )];
         assert_eq!(v.hint_for_earth(1, 1), Some(1));
         assert_eq!(v.hint_for_earth(1, 0), None);
         v.hint = vec![Step::new(1, StepKind::HeavenDown, abax_core::Rule::Direct)];
