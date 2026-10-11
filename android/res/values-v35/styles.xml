@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 15+ enforces edge-to-edge for targetSdk 35. The app is a
+         NativeActivity with no insets handling, so opt out and let the
+         window content area exclude the system bars. -->
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/wood</item>
+        <item name="android:navigationBarColor">@color/wood</item>
+        <item name="android:statusBarColor">@color/wood</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+</resources>
