@@ -475,12 +475,19 @@ impl eframe::App for App {
         let period_ms = self.record_frame();
         self.last_width = ctx.content_rect().width();
         let fill = self.palette.paper;
+        // On Android the NativeActivity surface still extends under the status
+        // bar: the theme's windowOptOutEdgeToEdgeEnforcement (values-v35) was
+        // tested on an API 35 emulator and did not move the content, so the
+        // Back/Clear row overlapped the clock. Reserve room for a typical
+        // 24-30 dp status bar here instead.
+        let top = if cfg!(target_os = "android") { 34 } else { 10 };
         egui::CentralPanel::default()
-            .frame(
-                egui::Frame::new()
-                    .fill(fill)
-                    .inner_margin(egui::Margin::symmetric(12, 10)),
-            )
+            .frame(egui::Frame::new().fill(fill).inner_margin(egui::Margin {
+                left: 12,
+                right: 12,
+                top,
+                bottom: 10,
+            }))
             .show(ui, |ui| {
                 self.show_screen(ui);
             });
