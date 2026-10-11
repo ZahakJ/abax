@@ -1,0 +1,499 @@
+/* Abax landing page. Palette from DESIGN.md: paper, ink, lacquered walnut,
+   bone, one vermilion accent. Light by default, dark by system preference. */
+
+:root {
+  --paper: #f4ede0;
+  --paper-2: #eadfcc;
+  --paper-3: #e2d4bd;
+  --ink: #2a2320;
+  --ink-soft: #6e6259;
+  --line: #d6c7ad;
+  --accent: #c2452d;
+  --accent-ink: #fffaf3;
+  --accent-text: #a83a25;
+  --walnut: #3b2a1e;
+  --walnut-light: #6b4a2e;
+  --walnut-deep: #24180f;
+  --bone: #efe6d6;
+  --shadow: rgba(42, 35, 32, 0.18);
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+  --measure: 68rem;
+  --gutter: 16px;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1c1a17;
+    --paper-2: #26221e;
+    --paper-3: #2f2924;
+    --ink: #ede6da;
+    --ink-soft: #a69c90;
+    --line: #3a332c;
+    --accent: #d8563b;
+    --accent-ink: #1c1a17;
+    --accent-text: #e98a72;
+    --walnut: #2c1f16;
+    --walnut-light: #4a3424;
+    --walnut-deep: #140d08;
+    --bone: #e6dac4;
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  overflow-x: hidden;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: var(--accent-text);
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+h1,
+h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.002em;
+  margin: 0 0 0.5em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(1.9rem, 4.6vw, 3.1rem);
+  max-width: 22ch;
+}
+
+h2 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.wrap {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+@media (min-width: 720px) {
+  :root {
+    --gutter: 32px;
+  }
+}
+
+section {
+  padding: 3.5rem 0;
+}
+
+section + section {
+  border-top: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------------------ top */
+
+.top {
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 56px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.brand img {
+  border-radius: 6px;
+}
+
+.top nav {
+  display: flex;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+}
+
+.top nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.97rem;
+}
+
+.top nav a:hover {
+  color: var(--ink);
+}
+
+/* ----------------------------------------------------------------- hero */
+
+.hero {
+  padding-top: 3rem;
+}
+
+.lede {
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+  max-width: 40rem;
+  margin: 0 0 1.5rem;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 2.25rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btn:hover {
+  background: var(--paper-3);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover {
+  background: var(--accent);
+  filter: brightness(1.06);
+}
+
+/* The lacquered tray the soroban sits on: dark walnut with fine grain, a
+   lit top bevel and a soft sheen, like the frame the app draws. */
+.panel {
+  margin: 0;
+  padding: clamp(10px, 2.2vw, 22px);
+  border-radius: 14px;
+  background:
+    linear-gradient(160deg, rgba(255, 240, 220, 0.10) 0%, rgba(255, 240, 220, 0) 38%, rgba(0, 0, 0, 0.18) 100%),
+    repeating-linear-gradient(178deg, rgba(0, 0, 0, 0) 0 7px, rgba(0, 0, 0, 0.09) 7px 8px, rgba(0, 0, 0, 0) 8px 19px, rgba(255, 220, 180, 0.04) 19px 20px),
+    repeating-linear-gradient(181deg, rgba(0, 0, 0, 0) 0 31px, rgba(0, 0, 0, 0.12) 31px 33px),
+    linear-gradient(180deg, var(--walnut-light) 0%, var(--walnut) 18%, var(--walnut-deep) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 235, 210, 0.22),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px var(--shadow),
+    0 18px 40px -18px var(--shadow);
+}
+
+.hero-media {
+  width: 100%;
+  aspect-ratio: 976 / 370;
+  border-radius: 6px;
+  background: var(--walnut-deep);
+}
+
+.facts {
+  margin: 1.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 1rem;
+}
+
+/* ---------------------------------------------------------------- shots */
+
+.shots {
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: 1fr;
+  margin: 1.5rem 0 2rem;
+}
+
+@media (min-width: 860px) {
+  .shots {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+figure {
+  margin: 0;
+}
+
+.shots img,
+.finish-row img {
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 28px -16px var(--shadow);
+}
+
+figcaption {
+  margin-top: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.97rem;
+}
+
+figcaption strong {
+  color: var(--ink);
+}
+
+.aside,
+.sub {
+  color: var(--ink-soft);
+  max-width: 44rem;
+}
+
+.sub {
+  margin: 0 0 1.5rem;
+}
+
+/* ----------------------------------------------------------- curriculum */
+
+.stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  counter-reset: stage;
+}
+
+@media (min-width: 600px) {
+  .stages {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 980px) {
+  .stages {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.stages > li {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.9rem 1rem 1rem;
+  border-top: 3px solid var(--walnut-light);
+}
+
+.stages > li:last-child {
+  border-top-color: var(--accent);
+}
+
+.stage {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 1.08rem;
+  margin-bottom: 0.4rem;
+}
+
+.stages ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stages ul li {
+  padding: 0.12rem 0;
+  font-size: 0.97rem;
+}
+
+.stages b {
+  display: inline-block;
+  min-width: 2.6em;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.88em;
+  color: var(--accent-text);
+}
+
+.more {
+  margin: 1.25rem 0 0;
+}
+
+/* ------------------------------------------------------------- finishes */
+
+.finish-row {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 1.25rem 0 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .finish-row {
+    grid-template-columns: 1fr;
+    max-width: 26rem;
+  }
+}
+
+.finish-row figcaption {
+  font-size: 0.92rem;
+}
+
+/* ------------------------------------------------------------- download */
+
+.release {
+  color: var(--ink-soft);
+  margin: 0 0 1.25rem;
+}
+
+.release strong {
+  color: var(--ink);
+}
+
+.dl-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 560px) {
+  .dl-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .dl-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.dl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-height: 64px;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.dl:hover {
+  background: var(--paper-3);
+}
+
+.dl-name {
+  font-weight: 600;
+}
+
+.dl-meta {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.dl.is-mine {
+  border: 2px solid var(--accent);
+  padding: calc(0.8rem - 1px) calc(1rem - 1px);
+  background: var(--paper);
+}
+
+.dl.is-mine .dl-name::after {
+  content: "  your system";
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--accent-text);
+  white-space: pre;
+}
+
+.dl-note {
+  margin: 1rem 0 0;
+  color: var(--ink-soft);
+}
+
+.fine {
+  color: var(--ink-soft);
+  font-size: 0.93rem;
+  margin: 1.25rem 0 0;
+  max-width: 50rem;
+}
+
+/* --------------------------------------------------------------- footer */
+
+.foot {
+  border-top: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink-soft);
+  font-size: 0.93rem;
+}
+
+.foot-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.foot p {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+}
