@@ -139,23 +139,27 @@ impl LessonState {
             self.setup_demo(app, now);
         }
         let l = lesson(self.skill);
-        ui.horizontal(|ui| {
-            if ui.button("Back").clicked() {
-                app.view.interactive = true;
-                app.screen = crate::Screen::Lessons;
-            }
-            ui.label(RichText::new(format!("Lesson {}", self.skill.code())).color(pal.ink_soft));
-        });
-        ui.heading(l.title);
+        let title = format!("Lesson {}", self.skill.code());
+        if crate::ui::header(ui, &pal, Some("Lessons"), &title, |_| {}) {
+            app.view.interactive = true;
+            app.screen = crate::Screen::Lessons;
+            return;
+        }
+        ui.label(
+            RichText::new(l.title)
+                .size(crate::ui::size::CARD_TITLE + 4.0)
+                .strong()
+                .color(pal.ink),
+        );
         egui::ScrollArea::vertical()
             .max_height(ui.available_height() * 0.38)
             .show(ui, |ui| {
                 for p in l.paragraphs {
-                    ui.label(RichText::new(*p).size(16.0));
+                    ui.label(RichText::new(*p).color(pal.ink));
                     ui.add_space(4.0);
                 }
             });
-        ui.separator();
+        crate::ui::rule(ui, &pal, 4.0);
 
         let has_demos = !l.demos.is_empty();
         if has_demos {
@@ -252,7 +256,7 @@ impl LessonState {
                 } else {
                     "Try it with hints"
                 };
-                if ui.button(RichText::new(label).strong()).clicked() {
+                if crate::ui::primary_button(ui, &pal, label, egui::vec2(0.0, 0.0)).clicked() {
                     app.view.interactive = true;
                     let level = app.save.scheduler.current_level(self.skill);
                     let spec = abax_core::scheduler::DrillSpec {
@@ -316,28 +320,22 @@ pub fn describe_step(st: &Step) -> String {
 
 pub fn list(app: &mut App, ui: &mut Ui) {
     let pal = app.palette;
-    ui.horizontal(|ui| {
-        if ui.button("Back").clicked() {
-            app.go_home();
-        }
-        ui.heading("Lessons");
-    });
+    if crate::ui::header(ui, &pal, None, "Lessons", |_| {}) {
+        app.go_home();
+        return;
+    }
     ui.label(RichText::new("Each lesson explains one idea, shows it on the beads, then lets you try it with hints. Lessons unlock as the ones before them settle in.").color(pal.ink_soft));
-    ui.add_space(6.0);
+    ui.add_space(8.0);
     let now = crate::storage::now_unix();
     egui::ScrollArea::vertical().show(ui, |ui| {
-        for skill in SkillId::ALL {
-            let unlocked = app.save.scheduler.is_unlocked(skill);
-            let mastered = app.save.scheduler.is_mastered(skill);
-            let p = app.save.scheduler.p_eff(skill, now);
-            let st = app.save.scheduler.state(skill);
-            ui.horizontal(|ui| {
-                let title = format!("{}  {}", skill.code(), skill.name());
-                let btn = egui::Button::new(RichText::new(title).size(16.0))
-                    .min_size(egui::vec2(ui.available_width() * 0.62, 36.0));
-                if ui.add_enabled(unlocked, btn).clicked() {
-                    app.screen = crate::Screen::Lesson(LessonState::new(skill));
-                }
+        crate::ui::card(ui, &pal, |ui| {
+            ui.spacing_mut().item_spacing.y = 0.0;
+            let n = SkillId::ALL.len();
+            for (i, skill) in SkillId::ALL.into_iter().enumerate() {
+                let unlocked = app.save.scheduler.is_unlocked(skill);
+                let mastered = app.save.scheduler.is_mastered(skill);
+                let p = app.save.scheduler.p_eff(skill, now);
+                let st = app.save.scheduler.state(skill);
                 let status = if !unlocked {
                     "locked".to_string()
                 } else if mastered {
@@ -352,8 +350,83 @@ pub fn list(app: &mut App, ui: &mut Ui) {
                         skill.ladder().len()
                     )
                 };
-                ui.label(RichText::new(status).color(if mastered { pal.ok } else { pal.ink_soft }));
-            });
-        }
+                if lesson_row(ui, &pal, skill, &status, unlocked, mastered).clicked() {
+                    app.screen = crate::Screen::Lesson(LessonState::new(skill));
+                }
+                if i + 1 < n {
+                    let w = ui.available_width();
+                    let (r, _) = ui.allocate_exact_size(egui::vec2(w, 1.0), egui::Sense::hover());
+                    ui.painter().hline(
+                        r.x_range(),
+                        r.center().y,
+                        egui::Stroke::new(1.0, crate::ui::hairline(&pal)),
+                    );
+                }
+            }
+        });
+        ui.add_space(12.0);
     });
+}
+
+/// One row of the lesson list: code, name, status; the whole row is the
+/// button.
+fn lesson_row(
+    ui: &mut Ui,
+    pal: &crate::theme::Palette,
+    skill: SkillId,
+    status: &str,
+    unlocked: bool,
+    mastered: bool,
+) -> egui::Response {
+    let w = ui.available_width();
+    let sense = if unlocked {
+        egui::Sense::click()
+    } else {
+        egui::Sense::hover()
+    };
+    let (rect, resp) = ui.allocate_exact_size(egui::vec2(w, 40.0), sense);
+    resp.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::WidgetType::Button, unlocked, skill.name())
+    });
+    let p = ui.painter();
+    if unlocked && resp.hovered() {
+        p.rect_filled(
+            rect.expand2(egui::vec2(6.0, 0.0)),
+            6.0,
+            crate::theme::mix(pal.paper2, pal.accent, 0.08),
+        );
+    }
+    let ink = if unlocked {
+        pal.ink
+    } else {
+        crate::theme::with_alpha(pal.ink_soft, 0.7)
+    };
+    let narrow = w < 420.0;
+    let code_w = 40.0;
+    p.text(
+        egui::pos2(rect.left(), rect.center().y),
+        egui::Align2::LEFT_CENTER,
+        skill.code(),
+        egui::FontId::monospace(14.0),
+        if unlocked { pal.accent } else { ink },
+    );
+    p.text(
+        egui::pos2(rect.left() + code_w, rect.center().y),
+        egui::Align2::LEFT_CENTER,
+        if narrow {
+            skill.short_name()
+        } else {
+            skill.name()
+        },
+        egui::FontId::proportional(16.0),
+        ink,
+    );
+    p.text(
+        egui::pos2(rect.right(), rect.center().y),
+        egui::Align2::RIGHT_CENTER,
+        status,
+        egui::FontId::proportional(13.0),
+        if mastered { pal.ok } else { pal.ink_soft },
+    );
+    resp
 }

@@ -4,10 +4,12 @@
 pub mod audio;
 pub mod charts;
 pub mod keypad;
+pub mod render;
 pub mod screens;
 pub mod soroban_view;
 pub mod storage;
 pub mod theme;
+pub mod ui;
 
 use std::collections::VecDeque;
 use std::time::Instant;
@@ -23,7 +25,7 @@ use screens::lesson::LessonState;
 use screens::picker::PickerState;
 use screens::stats::StatsState;
 use soroban_view::{InputMode, SorobanView};
-use theme::Palette;
+use theme::{Material, Palette};
 
 #[allow(clippy::large_enum_variant)]
 pub enum Screen {
@@ -50,12 +52,22 @@ pub enum Bench {
 }
 
 /// Screenshot automation driven by `ABAX_SHOT=<screen>:<path>` (desktop).
+/// A path ending in `/` is a directory: the app then records a sequence of
+/// [`SEQUENCE_FRAMES`] consecutive frames (`frame-000.png` ...) while the
+/// practice soroban runs a scripted set of moves (the landing-page hero).
 #[derive(Clone, Debug)]
 pub struct Shot {
     pub screen: String,
     pub path: String,
     frames: u32,
+    /// Sequence frames written so far.
+    written: u32,
 }
+
+/// Frames in a screenshot sequence.
+pub const SEQUENCE_FRAMES: u32 = 48;
+/// The frame the sequence starts on.
+const SEQUENCE_START: u32 = 10;
 
 impl Shot {
     pub fn from_env() -> Option<Self> {
@@ -65,7 +77,22 @@ impl Shot {
             screen: screen.to_string(),
             path: path.to_string(),
             frames: 0,
+            written: 0,
         })
+    }
+
+    pub fn is_sequence(&self) -> bool {
+        self.path.ends_with('/')
+    }
+
+    /// The scripted value for a sequence frame, if the soroban changes then.
+    pub fn sequence_value(frame: u32) -> Option<u128> {
+        match frame {
+            10 => Some(4_071_583),
+            26 => Some(2_958),
+            40 => Some(7_310_246),
+            _ => None,
+        }
     }
 }
 
@@ -73,9 +100,13 @@ pub struct App {
     pub save: SaveFile,
     pub screen: Screen,
     pub view: SorobanView,
+    /// The small decorative soroban on Home (the identity mark).
+    pub home_view: SorobanView,
     pub rng: Rng,
     pub audio: audio::Audio,
     pub palette: Palette,
+    /// The instrument's finish for the current theme mode.
+    pub material: Material,
     pub confirm_reset: bool,
     pub pending_drills: Vec<DrillSpec>,
     /// Width of the last frame in points, for layout decisions made outside
@@ -83,7 +114,7 @@ pub struct App {
     pub last_width: f32,
     dirty: bool,
     last_save: Instant,
-    style_key: Option<(bool, bool)>,
+    style_key: Option<(bool, bool, abax_core::store::Finish)>,
     started: Instant,
     first_frame: bool,
     frame_times: VecDeque<f32>,
@@ -102,6 +133,9 @@ pub struct App {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, bench: Option<Bench>) -> Self {
+        // Taken first so the start benchmark includes everything below
+        // (profile load and the soroban pipeline creation).
+        let started = Instant::now();
         let mut save = storage::load();
         if cfg!(target_os = "android") && save.history.is_empty() && save.settings.rod_count == 13 {
             // Phones: fewer rods so beads are large enough to tap.
@@ -109,21 +143,36 @@ impl App {
         }
         let mut view = SorobanView::new(save.settings.rod_count.clamp(1, 40));
         view.show_digits = save.settings.show_numbers;
+        let mut home_view = SorobanView::new(7);
+        home_view.interactive = false;
+        home_view.show_digits = false;
+        if let Some(rs) = cc.wgpu_render_state.as_ref() {
+            let t = Instant::now();
+            render::install(rs, &cc.egui_ctx);
+            log::info!(
+                "soroban pipeline created in {:.1} ms",
+                t.elapsed().as_secs_f32() * 1000.0
+            );
+        } else {
+            log::warn!("no wgpu render state: drawing the soroban with the classic painter");
+        }
         let seed = storage::now_unix() ^ 0xA5A5_5A5A_1234_5678;
         let mut app = Self {
             save,
             screen: Screen::Home,
             view,
+            home_view,
             rng: Rng::new(seed),
             audio: audio::Audio::new(),
             palette: theme::LIGHT,
+            material: theme::material(Default::default(), false),
             confirm_reset: false,
             pending_drills: Vec::new(),
             last_width: 960.0,
             dirty: false,
             last_save: Instant::now(),
             style_key: None,
-            started: Instant::now(),
+            started,
             first_frame: false,
             frame_times: VecDeque::with_capacity(128),
             last_frame: None,
@@ -169,6 +218,7 @@ impl App {
             abax_core::store::InputMode::Both => InputMode::Both,
         };
         self.view.motion.reduce = s.reduce_motion;
+        self.home_view.motion.reduce = s.reduce_motion;
         self.view.show_digits = s.show_numbers;
         self.audio.enabled = s.sound;
         self.audio.volume = s.volume;
@@ -184,9 +234,14 @@ impl App {
                 .map(|t| t == egui::Theme::Dark)
                 .unwrap_or(false),
         };
-        let key = (dark, self.save.settings.large_text);
+        let key = (
+            dark,
+            self.save.settings.large_text,
+            self.save.settings.finish,
+        );
         if self.style_key != Some(key) {
             self.palette = if dark { theme::DARK } else { theme::LIGHT };
+            self.material = theme::material(self.save.settings.finish, dark);
             theme::apply_style(ctx, &self.palette, self.save.settings.large_text);
             self.style_key = Some(key);
         }
@@ -300,12 +355,36 @@ impl App {
         shot.frames += 1;
         let frames = shot.frames;
         let screen = shot.screen.clone();
+        let sequence = shot.is_sequence();
         ctx.request_repaint();
         if frames == 2 {
             self.navigate_for_shot(&screen);
-        } else if frames == 40 {
+            if sequence {
+                if let Some(dir) = self.shot.as_ref().map(|s| s.path.clone()) {
+                    let _ = std::fs::create_dir_all(dir);
+                }
+                // The scripted moves start from an empty soroban.
+                let empty = abax_core::Soroban::new(self.view.rod_count());
+                self.view.snap_to(&empty);
+            }
+        } else if sequence && frames >= SEQUENCE_START {
+            let now = ctx.input(|i| i.time);
+            if let Some(v) = Shot::sequence_value(frames) {
+                let mut target = self.view.model.clone();
+                target.set_value(v);
+                let d = self.view.motion.demo_move;
+                self.view.animate_to(&target, now, d);
+            }
+            if frames < SEQUENCE_START + SEQUENCE_FRAMES {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
+            }
+            if frames > SEQUENCE_START + SEQUENCE_FRAMES + 200 {
+                log::warn!("screenshot sequence incomplete; exiting");
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+        } else if !sequence && frames == 40 {
             ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
-        } else if frames > 200 {
+        } else if !sequence && frames > 200 {
             log::warn!("screenshot never arrived; exiting");
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
@@ -321,6 +400,12 @@ impl App {
             "lesson" => {
                 self.screen = Screen::Lesson(LessonState::new(SkillId::AddFive));
             }
+            "glass" => {
+                // The anzan fade part-way: beads turning to glass.
+                self.screen = Screen::Practice;
+                self.view.set_value(4_071_583, now);
+                self.view.fade = 0.55;
+            }
             "drill" => {
                 let skill = SkillId::AddTen;
                 let spec = DrillSpec {
@@ -335,6 +420,13 @@ impl App {
             "stats" => self.screen = Screen::Stats(StatsState::default()),
             "lessons" => self.screen = Screen::Lessons,
             "flash" => self.start_flash(SkillId::Anzan),
+            "flash-run" => {
+                let mut st = FlashState::new(self, SkillId::FlashMulti);
+                // Long enough that frame 40 lands on a shown number.
+                st.interval_ms = 3000;
+                st.begin(self, -0.8);
+                self.screen = Screen::Flash(st);
+            }
             "settings" => self.screen = Screen::Settings,
             _ => self.screen = Screen::Home,
         }
@@ -474,6 +566,8 @@ impl eframe::App for App {
         self.refresh_style(&ctx);
         let period_ms = self.record_frame();
         self.last_width = ctx.content_rect().width();
+        self.view.material = self.material;
+        self.home_view.material = self.material;
         let fill = self.palette.paper;
         // On Android the NativeActivity surface still extends under the status
         // bar: the theme's windowOptOutEdgeToEdgeEnforcement (values-v35) was
@@ -517,10 +611,27 @@ impl eframe::App for App {
     }
 
     fn raw_input_hook(&mut self, ctx: &egui::Context, raw_input: &mut egui::RawInput) {
-        if let Some(shot) = &self.shot {
-            let path = shot.path.clone();
-            for ev in &raw_input.events {
-                if let egui::Event::Screenshot { image, .. } = ev {
+        let Some(shot) = &self.shot else {
+            return;
+        };
+        let sequence = shot.is_sequence();
+        let path = shot.path.clone();
+        for ev in &raw_input.events {
+            if let egui::Event::Screenshot { image, .. } = ev {
+                if sequence {
+                    // Screenshots can arrive a frame late; each one simply
+                    // goes to the next file.
+                    let n = self.shot.as_ref().map_or(0, |s| s.written);
+                    if n < SEQUENCE_FRAMES {
+                        self.save_screenshot(image, &format!("{path}frame-{n:03}.png"));
+                        if let Some(s) = &mut self.shot {
+                            s.written += 1;
+                        }
+                    }
+                    if n + 1 >= SEQUENCE_FRAMES {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                } else {
                     self.save_screenshot(image, &path);
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
@@ -559,4 +670,27 @@ fn avg_p95(samples: &[f32]) -> (f32, f32) {
     let avg = v.iter().sum::<f32>() / v.len() as f32;
     let p95 = v[((v.len() as f32 * 0.95) as usize).min(v.len() - 1)];
     (avg, p95)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shot_sequence_script() {
+        let shot = Shot {
+            screen: "practice".into(),
+            path: "out/".into(),
+            frames: 0,
+            written: 0,
+        };
+        assert!(shot.is_sequence());
+        let changes: Vec<u32> = (0..200)
+            .filter(|f| Shot::sequence_value(*f).is_some())
+            .collect();
+        assert_eq!(changes, vec![10, 26, 40]);
+        assert!(changes
+            .iter()
+            .all(|f| *f >= SEQUENCE_START && *f < SEQUENCE_START + SEQUENCE_FRAMES));
+    }
 }

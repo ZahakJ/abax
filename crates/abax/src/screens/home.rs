@@ -12,19 +12,46 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     let plan = app.save.scheduler.plan_session(now, &mut app.rng);
     let next_lesson = app.save.scheduler.next_skill_to_learn();
 
+    let narrow = ui.available_width() < 560.0;
     ui.vertical_centered(|ui| {
-        ui.add_space(10.0);
-        ui.label(RichText::new("Abax").size(40.0).strong());
+        ui.add_space(if narrow { 4.0 } else { 8.0 });
+        ui.label(
+            RichText::new("Abax")
+                .size(crate::ui::size::DISPLAY)
+                .strong()
+                .color(pal.ink),
+        );
         ui.label(RichText::new("soroban trainer").color(pal.ink_soft));
     });
-    ui.add_space(8.0);
+    ui.add_space(6.0);
 
-    // Momentum line (no streaks).
+    // The identity mark: a small live soroban (seven rods, not interactive)
+    // showing how many items were practised in the last 14 days.
+    {
+        let t = ui.input(|i| i.time);
+        let items = (mom.items_14d as u128).min(9_999_999);
+        if app.home_view.model.value() != items {
+            let mut target = abax_core::Soroban::new(7);
+            target.set_value(items);
+            let d = app.home_view.motion.demo_move;
+            app.home_view.animate_to(&target, t, d);
+        }
+        let w = ui.available_width().min(if narrow { 300.0 } else { 340.0 });
+        let h = app
+            .home_view
+            .natural_height(w)
+            .min(if narrow { 150.0 } else { 170.0 });
+        ui.vertical_centered(|ui| {
+            app.home_view.show(ui, &pal, egui::vec2(w, h));
+        });
+    }
+
+    // Momentum line (no streaks); the soroban above shows the item count.
     let momentum = if mom.items_14d == 0 {
         "No practice yet. A first session takes about five minutes.".to_string()
     } else {
         format!(
-            "Last 14 days: {} items in {:.0} min over {} day{}. Momentum {}%.",
+            "{} items in the last 14 days, {:.0} min over {} day{}. Momentum {}%.",
             mom.items_14d,
             mom.minutes_14d,
             mom.days_active_14d,
@@ -32,69 +59,63 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             (mom.carried * 100.0).round() as i32
         )
     };
-    ui.label(RichText::new(momentum).color(pal.ink_soft));
+    ui.vertical_centered(|ui| {
+        ui.label(RichText::new(momentum).color(pal.ink_soft));
+    });
     ui.add_space(8.0);
 
     // Continue card.
-    egui::Frame::new()
-        .fill(pal.paper2)
-        .corner_radius(12)
-        .inner_margin(14)
-        .show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            let (title, body) = if let Some(skill) = next_lesson {
-                (
-                    format!("Next lesson: {}", skill.name()),
-                    "A short explanation, a demonstration on the beads, then practice with hints."
-                        .to_string(),
-                )
+    crate::ui::card(ui, &pal, |ui| {
+        let (title, body) = if let Some(skill) = next_lesson {
+            (
+                format!("Next lesson: {}", skill.name()),
+                "A short explanation, a demonstration on the beads, then practice with hints."
+                    .to_string(),
+            )
+        } else {
+            let f = &plan.focus;
+            (
+                format!("Today's focus: {}", f.skill.name()),
+                format!(
+                    "{} items at step {} of {}{}.",
+                    f.items,
+                    f.skill
+                        .ladder()
+                        .iter()
+                        .position(|l| *l == f.level)
+                        .unwrap_or(0)
+                        + 1,
+                    f.skill.ladder().len(),
+                    if plan.warmup.is_some() {
+                        ", after a warm-up"
+                    } else {
+                        ""
+                    }
+                ),
+            )
+        };
+        ui.label(
+            RichText::new(title)
+                .size(crate::ui::size::CARD_TITLE)
+                .strong()
+                .color(pal.ink),
+        );
+        ui.label(RichText::new(body).color(pal.ink_soft));
+        ui.add_space(6.0);
+        if crate::ui::primary_button(ui, &pal, "Continue", egui::vec2(160.0, 40.0)).clicked() {
+            if let Some(skill) = next_lesson {
+                app.screen = crate::Screen::Lesson(crate::screens::lesson::LessonState::new(skill));
             } else {
-                let f = &plan.focus;
-                (
-                    format!("Today's focus: {}", f.skill.name()),
-                    format!(
-                        "{} items at step {} of {}{}.",
-                        f.items,
-                        f.skill
-                            .ladder()
-                            .iter()
-                            .position(|l| *l == f.level)
-                            .unwrap_or(0)
-                            + 1,
-                        f.skill.ladder().len(),
-                        if plan.warmup.is_some() {
-                            ", after a warm-up"
-                        } else {
-                            ""
-                        }
-                    ),
-                )
-            };
-            ui.label(RichText::new(title).size(20.0).strong());
-            ui.label(RichText::new(body).color(pal.ink_soft));
-            ui.add_space(6.0);
-            if ui
-                .add(
-                    egui::Button::new(RichText::new("Continue").strong().size(18.0))
-                        .min_size(egui::vec2(160.0, 40.0))
-                        .fill(pal.accent_soft),
-                )
-                .clicked()
-            {
-                if let Some(skill) = next_lesson {
-                    app.screen =
-                        crate::Screen::Lesson(crate::screens::lesson::LessonState::new(skill));
-                } else {
-                    app.start_session(plan.clone());
-                }
+                app.start_session(plan.clone());
             }
-        });
+        }
+    });
     ui.add_space(10.0);
 
     let w = ui.available_width();
     let cols = if w > 560.0 { 4 } else { 2 };
     let bw = (w - (cols as f32 - 1.0) * 10.0) / cols as f32;
-    let size = egui::vec2(bw, 56.0);
+    let size = egui::vec2(bw, 58.0);
     let buttons: [(&str, &str); 8] = [
         ("Practice", "Free soroban"),
         ("Lessons", "Learn each idea"),
@@ -111,8 +132,9 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             for (i, (label, sub)) in buttons.iter().enumerate() {
                 let mut job = egui::text::LayoutJob::default();
                 RichText::new(format!("{label}\n"))
-                    .size(15.0)
+                    .size(16.0)
                     .strong()
+                    .color(pal.ink)
                     .append_to(
                         &mut job,
                         ui.style(),
@@ -120,7 +142,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         egui::Align::LEFT,
                     );
                 RichText::new(*sub)
-                    .size(15.0)
+                    .size(13.5)
                     .color(pal.ink_soft)
                     .append_to(
                         &mut job,
@@ -128,7 +150,13 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         egui::FontSelection::Default,
                         egui::Align::LEFT,
                     );
-                let r = ui.add(egui::Button::new(job).min_size(size));
+                let r = ui.add(
+                    egui::Button::new(job)
+                        .min_size(size)
+                        .fill(pal.paper2)
+                        .stroke(egui::Stroke::new(1.0, crate::ui::hairline(&pal)))
+                        .corner_radius(10),
+                );
                 if r.clicked() {
                     match *label {
                         "Practice" => app.screen = crate::Screen::Practice,

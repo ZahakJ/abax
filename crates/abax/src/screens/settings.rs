@@ -1,23 +1,21 @@
 //! Settings and about.
 
-use abax_core::store::{InputMode, Theme};
+use abax_core::store::{Finish, InputMode, Theme};
 use egui::{RichText, Ui};
 
 use crate::App;
 
 pub fn show(app: &mut App, ui: &mut Ui) {
     let pal = app.palette;
-    ui.horizontal(|ui| {
-        if ui.button("Back").clicked() {
-            app.go_home();
-        }
-        ui.heading("Settings");
-    });
+    if crate::ui::header(ui, &pal, None, "Settings", |_| {}) {
+        app.go_home();
+        return;
+    }
     egui::ScrollArea::vertical().show(ui, |ui| {
         let mut changed = false;
         {
             let s = &mut app.save.settings;
-            ui.label(RichText::new("Soroban").strong());
+            crate::ui::section(ui, &pal, "Soroban");
             ui.horizontal(|ui| {
                 ui.label("Rods");
                 for n in abax_core::soroban::ROD_COUNTS {
@@ -65,8 +63,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     .changed();
             });
 
-            ui.add_space(8.0);
-            ui.label(RichText::new("Appearance").strong());
+            crate::ui::section(ui, &pal, "Appearance");
             ui.horizontal(|ui| {
                 ui.label("Theme");
                 for (t, label) in [
@@ -80,11 +77,19 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     }
                 }
             });
+            ui.horizontal(|ui| {
+                ui.label("Finish");
+                for f in Finish::ALL {
+                    if ui.selectable_label(s.finish == f, f.name()).clicked() {
+                        s.finish = f;
+                        changed = true;
+                    }
+                }
+            });
             changed |= ui.checkbox(&mut s.large_text, "Large text").changed();
             changed |= ui.checkbox(&mut s.reduce_motion, "Reduce motion").changed();
 
-            ui.add_space(8.0);
-            ui.label(RichText::new("Sound").strong());
+            crate::ui::section(ui, &pal, "Sound");
             changed |= ui.checkbox(&mut s.sound, "Bead click").changed();
             ui.horizontal(|ui| {
                 ui.label("Volume");
@@ -107,8 +112,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             }
         }
 
-        ui.add_space(12.0);
-        ui.label(RichText::new("Data").strong());
+        crate::ui::section(ui, &pal, "Data");
         ui.label(
             RichText::new(format!(
                 "Profile: {}",
@@ -148,8 +152,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             });
         }
 
-        ui.add_space(12.0);
-        ui.label(RichText::new("About").strong());
+        crate::ui::section(ui, &pal, "About");
         ui.label(format!("Abax {}", env!("CARGO_PKG_VERSION")));
         ui.label(
             RichText::new(

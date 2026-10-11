@@ -25,8 +25,13 @@ Calm, physical, quiet. No neon, no confetti, no mascots.
 | ok | #4F7A4A | #7FAF78 | correct |
 | warn | #B8862B | #D4A440 | hint / stalled |
 
-Highlights for "move this bead" are never colour-only: an accent ring plus a
-small arrow in the direction of the move, pulsing slowly (research §4).
+Highlights for "move this bead" are never colour-only: a soft accent glow
+behind the bead (pulsing with a 1.2 s period, steady with reduce motion) plus
+a small rounded arrow in the direction of the move (research §4).
+
+The frame, rods, beam and beads take their colours from the finish
+(Settings > Appearance: walnut, ebony, maple; `theme::material`), not from
+this table; the frame/rod/beam/bead tokens above are the walnut finish.
 
 ### Type
 
@@ -35,13 +40,18 @@ so digits do not jitter while animating. Western digits everywhere.
 
 ### Motion
 
-- A bead move the user makes: 90 ms, ease-out. Beads on the same rod that
-  move together are staggered by 15 ms so the group reads as a sweep.
-- A demonstrated move (lesson, hint): 400 ms ease-in-out, repeated after a
+- Every bead move settles on a critically damped spring curve (starts from
+  rest, decelerates long and soft, never passes its stop).
+- A bead move the user makes: 90 ms. Beads on the same rod that move
+  together are staggered by 15 ms so the group reads as a sweep; the moving
+  beads brighten briefly (150 ms), in time with the optional click.
+- A demonstrated move (lesson, hint): 400 ms, repeated after a
   600 ms pause until the user performs it.
 - Reset: tilt metaphor — all beads leave the beam in 220 ms with a 12 ms
   stagger from the right rod.
-- Anzan fade: beads lose opacity over the configured span; the frame stays.
+- Anzan fade: beads turn to glass over the configured span: the body goes
+  translucent first, highlights stay until late, everything vanishes over
+  the last quarter; the frame stays.
 
 ### Sound
 

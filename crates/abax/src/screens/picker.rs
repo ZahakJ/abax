@@ -29,12 +29,11 @@ impl Default for PickerState {
 impl PickerState {
     pub fn show(&mut self, app: &mut App, ui: &mut Ui) {
         let pal = app.palette;
-        ui.horizontal(|ui| {
-            if ui.button("Back").clicked() {
-                app.go_home();
-            }
-            ui.heading(if self.sprint { "Sprint" } else { "Drills" });
-        });
+        let title = if self.sprint { "Sprint" } else { "Drills" };
+        if crate::ui::header(ui, &pal, None, title, |_| {}) {
+            app.go_home();
+            return;
+        }
         ui.label(
             RichText::new(if self.sprint {
                 "Sixty seconds, as many items as you can. The clock, not a mistake, ends it."
@@ -76,7 +75,7 @@ impl PickerState {
             ("Anzan", &[SkillId::Anzan]),
         ];
         for (title, skills) in groups {
-            ui.label(RichText::new(title).strong());
+            crate::ui::section(ui, &pal, title);
             ui.horizontal_wrapped(|ui| {
                 for s in skills {
                     let on = unlocked.contains(s);
@@ -91,8 +90,9 @@ impl PickerState {
                 }
             });
         }
-        ui.add_space(8.0);
+        ui.add_space(4.0);
         if let Some(skill) = self.skill {
+            crate::ui::section(ui, &pal, "Difficulty");
             let ladder = skill.ladder();
             let cur = app.save.scheduler.state(skill).level.min(ladder.len() - 1);
             let idx = self.level_idx.unwrap_or(cur);
@@ -127,13 +127,7 @@ impl PickerState {
                 });
             }
             ui.add_space(8.0);
-            if ui
-                .add(
-                    egui::Button::new(RichText::new("Start").strong().size(18.0))
-                        .min_size(egui::vec2(140.0, 40.0)),
-                )
-                .clicked()
-            {
+            if crate::ui::primary_button(ui, &pal, "Start", egui::vec2(140.0, 40.0)).clicked() {
                 let spec = DrillSpec {
                     skill,
                     level: ladder[idx],
