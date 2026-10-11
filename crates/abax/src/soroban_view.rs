@@ -781,9 +781,12 @@ impl SorobanView {
                     self.hint_for_earth(i, b - 1).is_some()
                 };
                 if hinted {
-                    let r = Rect::from_center_size(pos2(g.rod_x(i), cy), vec2(bw * 1.7, bh * 1.9));
+                    // A vermilion halo about 1.9x the bead, pulsing between
+                    // 0.55 and 1.0 of its peak (steady at peak with reduce
+                    // motion, where `pulse` is 1).
+                    let r = Rect::from_center_size(pos2(g.rod_x(i), cy), vec2(bw * 1.9, bh * 2.4));
                     out.push(Instance::new(kind::HINT_GLOW, 0, rel(r)).colors(
-                        linear(accent, 0.55 + 0.35 * pulse),
+                        linear(accent, 0.95 * (0.55 + 0.45 * pulse)),
                         [0.0; 4],
                         [0.0; 4],
                     ));
@@ -1132,18 +1135,40 @@ fn hint_arrow(
     dir: i8,
     pulse: f32,
 ) {
-    let s = (g.bead_h * 0.36).clamp(4.5, 11.0);
+    // Head size; about 1.5x the 0.1 arrow.
+    let s = (g.bead_h * 0.54).clamp(7.0, 16.0);
     let sign = if dir > 0 { 1.0 } else { -1.0 };
-    let ay = c.y + sign * (half_h + s * 0.95);
-    let tip = pos2(c.x, ay + sign * s * 0.55);
-    let left = pos2(c.x - s * 0.62, ay - sign * s * 0.45);
-    let right = pos2(c.x + s * 0.62, ay - sign * s * 0.45);
-    let pts = rounded_triangle([tip, left, right], s * 0.18);
+    // Shaft from just outside the bead, then the head, all in the
+    // direction of travel.
+    let start = c.y + sign * (half_h + s * 0.15);
+    let shaft_len = s * 0.45;
+    let base_y = start + sign * shaft_len;
+    let tip = pos2(c.x, base_y + sign * s * 0.75);
+    let left = pos2(c.x - s * 0.62, base_y);
+    let right = pos2(c.x + s * 0.62, base_y);
+    let head = rounded_triangle([tip, left, right], s * 0.14);
+    let shaft = Rect::from_two_pos(
+        pos2(c.x - s * 0.17, start),
+        pos2(c.x + s * 0.17, base_y + sign * s * 0.1),
+    );
+    // A thin bone outline (drawn first, slightly larger) keeps the arrow
+    // readable over the beam and over bone beads.
+    let outline = Stroke::new(1.5, crate::ui::ON_ACCENT);
+    painter.rect(
+        shaft,
+        s * 0.17,
+        Color32::TRANSPARENT,
+        outline,
+        StrokeKind::Outside,
+    );
     painter.add(Shape::convex_polygon(
-        pts,
-        with_alpha(pal.accent, 0.7 + 0.3 * pulse),
-        Stroke::NONE,
+        head.clone(),
+        Color32::TRANSPARENT,
+        outline,
     ));
+    let fill = with_alpha(pal.accent, 0.85 + 0.15 * pulse);
+    painter.rect_filled(shaft, s * 0.17, fill);
+    painter.add(Shape::convex_polygon(head, fill, Stroke::NONE));
 }
 
 /// A triangle with its corners rounded by `radius` (as a convex polygon).
