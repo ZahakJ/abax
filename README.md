@@ -61,6 +61,13 @@ also covers older 32-bit phones (armv7) and x86_64 emulators, at three times the
 
 *The same screens at phone size: the soroban fills the width and the keypad sits under the thumb.*
 
+<p>
+<img src="screenshots/android-home.png" alt="Home screen on an Android emulator" width="280">
+<img src="screenshots/android-practice.png" alt="Free practice on an Android emulator" width="280">
+</p>
+
+*The Android build on an API 35 emulator.*
+
 ## How it teaches
 
 The curriculum is a small graph of 15 skills. Each skill unlocks when its prerequisites are learned:
@@ -200,7 +207,7 @@ Without `ABAX_KEYSTORE` the script signs with a throwaway debug key; set `ABAX_K
 - No sound on Android in this version: the desktop audio library (cpal) needs oboe, a C++ dependency, on Android.
 - The macOS and Windows binaries are unsigned, so the first launch needs the extra confirmation described above.
 - No soft-keyboard text input on Android; the app's own keypad covers every input.
-- The screenshots are from the Linux build.
+- The desktop screenshots are from the Linux build; the Android ones are from an x86_64 emulator with software rendering.
 
 ## License
 
