@@ -294,7 +294,9 @@ fn shade_underline(in: VsOut, fw: f32) -> vec4<f32> {
 // Radial halo behind a bead to move. ca: accent (a: strength incl. pulse).
 fn shade_hint_glow(in: VsOut) -> vec4<f32> {
     let d = length(in.local / in.half);
-    let a = exp(-d * d * 2.6) * (1.0 - smoothstep(0.75, 1.0, d)) * in.ca.a;
+    // Flat-topped falloff: the bead hides the centre, so the visible ring
+    // just outside it must be close to the peak, then feather to zero.
+    let a = pow(1.0 - smoothstep(0.35, 1.0, d), 1.4) * in.ca.a;
     return vec4<f32>(in.ca.rgb, a);
 }
 
