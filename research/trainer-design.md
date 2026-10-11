@@ -278,8 +278,8 @@ L_next = post + (1-post)*p_T
 ```
 
 Worked values to unit-test against (start L = 0.10): four consecutive corrects give
-0.400, 0.775, 0.9455, 0.9886; one error after that drops to 0.907; one more correct returns to
-0.978. Mastery flag requires `L ≥ 0.95` (the conventional threshold) **and** `n ≥ 10` **and** the
+0.400, 0.775, 0.9455, 0.9886; one error after that drops to 0.924; one more correct returns to
+0.984 (values recomputed during implementation; an earlier draft said 0.907/0.978). Mastery flag requires `L ≥ 0.95` (the conventional threshold) **and** `n ≥ 10` **and** the
 speed gate below, so four lucky answers cannot "master" a skill.
 
 **Accuracy EWMA**: `acc ← acc + 0.2*(correct − acc)`. Ten consecutive corrects from 0.5 give
@@ -393,7 +393,7 @@ where `item_class` is e.g. "+7 on a rod showing 8". Pick the top-scoring item; b
   and stability in the long run" is the reason not to need a longer placement test.
 
 ### 3.8 Unit-test checklist
-- BKT sequence above (0.400 / 0.775 / 0.9455 / 0.9886 / 0.907 / 0.978) to 3 d.p.
+- BKT sequence above (0.400 / 0.775 / 0.9455 / 0.9886 / 0.924 / 0.984) to 3 d.p.
 - EWMA: 10 corrects from 0.5 → 0.9463; 3 errors from 0.9 → 0.4608.
 - `U(0) = 1.0`, `U(10) = 0.625`, `U(100) = 0.142857`.
 - Elo monotonicity: a correct answer never lowers `theta`; an incorrect one never raises it.

@@ -7,3 +7,4 @@ description = "Soroban model, complement rules, curriculum and adaptive schedule
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
