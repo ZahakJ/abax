@@ -3,30 +3,30 @@
 ## Install
 
 Every release on GitHub carries the same set of files. The commands below
-use v0.2.0; the [releases page](https://github.com/ZahakJ/abax/releases/latest)
+use v0.2.1; the [releases page](https://github.com/ZahakJ/abax/releases/latest)
 always has the newest version, and `SHA256SUMS.txt` next to the downloads
 lets you check what you fetched (`sha256sum -c SHA256SUMS.txt --ignore-missing`).
 
 | Platform | File |
 |----------|------|
-| Linux x86_64 | `abax-v0.2.0-linux-x86_64.tar.gz` |
-| Windows x86_64 | `abax-v0.2.0-windows-x86_64.zip` |
-| macOS, Apple silicon | `abax-v0.2.0-macos-aarch64.dmg` |
-| macOS, Intel | `abax-v0.2.0-macos-x86_64.dmg` |
-| Android, 64-bit ARM (almost every current phone) | `abax-v0.2.0-android-arm64-v8a.apk` |
-| Android, universal (adds 32-bit ARM and x86_64) | `abax-v0.2.0-android-universal.apk` |
+| Linux x86_64 | `abax-v0.2.1-linux-x86_64.tar.gz` |
+| Windows x86_64 | `abax-v0.2.1-windows-x86_64.zip` |
+| macOS, Apple silicon | `abax-v0.2.1-macos-aarch64.dmg` |
+| macOS, Intel | `abax-v0.2.1-macos-x86_64.dmg` |
+| Android, 64-bit ARM (almost every current phone) | `abax-v0.2.1-android-arm64-v8a.apk` |
+| Android, universal (adds 32-bit ARM and x86_64) | `abax-v0.2.1-android-universal.apk` |
 
 ### Linux
 
 ```sh
-curl -L https://github.com/ZahakJ/abax/releases/download/v0.2.0/abax-v0.2.0-linux-x86_64.tar.gz | tar xz
-./abax-v0.2.0-linux-x86_64/install.sh
+curl -L https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-linux-x86_64.tar.gz | tar xz
+./abax-v0.2.1-linux-x86_64/install.sh
 ```
 
 `install.sh` needs no root. It copies the binary to `~/.local/bin/abax`
 (or `$XDG_BIN_HOME`), the desktop entry to `~/.local/share/applications/`
 and the icon to `~/.local/share/icons/`, so Abax appears in your launcher.
-You can also skip the installer and run `./abax-v0.2.0-linux-x86_64/abax`
+You can also skip the installer and run `./abax-v0.2.1-linux-x86_64/abax`
 directly. The binary needs a Vulkan or OpenGL driver, which every desktop
 Linux has.
 
@@ -35,7 +35,7 @@ Linux has.
 In PowerShell:
 
 ```powershell
-Invoke-WebRequest https://github.com/ZahakJ/abax/releases/download/v0.2.0/abax-v0.2.0-windows-x86_64.zip -OutFile abax.zip; Expand-Archive abax.zip -DestinationPath abax
+Invoke-WebRequest https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-windows-x86_64.zip -OutFile abax.zip; Expand-Archive abax.zip -DestinationPath abax
 ```
 
 Then run `abax\abax.exe`. The binary is not code-signed, so SmartScreen may
@@ -47,20 +47,26 @@ Download the dmg for your Mac (Apple menu > About This Mac: "Apple M1" or
 later means Apple silicon, "Intel" means Intel), open it and drag
 `Abax.app` to Applications.
 
-The app is not signed or notarized. The first launch therefore needs
-right-click > Open > Open, or once in a terminal:
+The app is ad-hoc signed but not notarized (there is no paid Apple
+certificate), so the first launch says "Apple could not verify Abax".
+Right-click the app > Open > Open; on macOS 15 and later, open it once, then
+click Open Anyway in System Settings > Privacy & Security. Or run once in a
+terminal:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/Abax.app
+xattr -cr /Applications/Abax.app
 ```
+
+Version 0.2.0 was not signed as a bundle and macOS called it "damaged";
+0.2.1 fixes that ([details](https://github.com/ZahakJ/abax/blob/main/docs/macos-gatekeeper.md)).
 
 ### Android
 
 On the phone, open the
-[arm64-v8a APK](https://github.com/ZahakJ/abax/releases/download/v0.2.0/abax-v0.2.0-android-arm64-v8a.apk)
+[arm64-v8a APK](https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-android-arm64-v8a.apk)
 link and install it. Android asks you to allow installing apps from your
 browser the first time. Abax needs Android 7.0 (API 24) or newer. The
-[universal APK](https://github.com/ZahakJ/abax/releases/download/v0.2.0/abax-v0.2.0-android-universal.apk)
+[universal APK](https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-android-universal.apk)
 also contains 32-bit ARM and x86_64 code; use it on an old 32-bit phone or
 an emulator. This version has no sound on Android.
 
