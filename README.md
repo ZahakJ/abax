@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/media/banner.png" alt="Abax — a soroban trainer that teaches the way soroban schools do" width="820"></p>
+
 # Abax
 
 A soroban (Japanese abacus) trainer for Linux, Windows, macOS and Android.
