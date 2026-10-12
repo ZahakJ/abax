@@ -4,6 +4,13 @@ All notable changes to Abax. The format follows Keep a Changelog; versions follo
 
 ## Unreleased
 
+## 0.2.1 - 2026-10-12
+
+### Fixed
+
+- macOS: the app opened as "Abax is damaged and can't be opened". `make-app.sh` now ad-hoc signs the finished `Abax.app` (`codesign --force --deep --sign -`), the release job signs the dmg too, and the job fails unless `codesign --verify --deep --strict` passes on the `.app` and on the copy inside the dmg. The app is still not notarized: the first launch needs right-click > Open (macOS 15 and later: Privacy & Security > Open Anyway) or `xattr -cr /Applications/Abax.app`. See `docs/macos-gatekeeper.md`.
+- Android versionCode 201.
+
 ## 0.2.0 - 2026-10-11
 
 ### Rendering

@@ -23,4 +23,10 @@ if command -v iconutil >/dev/null 2>&1 && command -v sips >/dev/null 2>&1; then
   iconutil -c icns "$iconset" -o "$app/Contents/Resources/abax.icns" || true
   rm -rf "$iconset"
 fi
+# Ad-hoc sign the finished bundle (docs/macos-gatekeeper.md). This must be the last change to
+# the .app: anything written into it afterwards breaks the seal and macOS reports the app as
+# "damaged". Without a signature an Apple silicon Mac refuses the download the same way.
+if command -v codesign >/dev/null 2>&1; then
+  codesign --force --deep --sign - "$app"
+fi
 echo "built $app"

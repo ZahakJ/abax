@@ -97,8 +97,9 @@ jobs:
       - name: Build
         run: cargo build --release -p abax --target ${{ matrix.target }}
 
-      # The .app is NOT code-signed or notarized. On first launch users must
-      # right-click > Open, or run: xattr -dr com.apple.quarantine /Applications/Abax.app
+      # The .app is ad-hoc signed by make-app.sh (no Developer ID, so not notarized): macOS shows
+      # "Apple could not verify..." on the first launch instead of "damaged". See
+      # docs/macos-gatekeeper.md.
       - name: Build Abax.app and DMG
         run: |
           TAG="${GITHUB_REF_NAME}"
@@ -114,6 +115,15 @@ jobs:
             [ "$i" = 5 ] && exit 1
             sleep 10
           done
+          codesign --force --sign - "dist/abax-${TAG}-macos-${ARCH}.dmg"
+
+      # Fails the job if the .app (or the copy inside the dmg) is unsigned, partially signed or
+      # altered after signing; prints codesign -dv and spctl (which rejects ad-hoc; expected).
+      - name: Verify the macOS signature
+        run: |
+          chmod +x packaging/verify-macos-signature.sh
+          packaging/verify-macos-signature.sh "dist/${{ matrix.arch }}/Abax.app" \
+            "dist/abax-${GITHUB_REF_NAME}-macos-${{ matrix.arch }}.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
