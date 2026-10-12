@@ -4,6 +4,24 @@ All notable changes to Abax. The format follows Keep a Changelog; versions follo
 
 ## Unreleased
 
+## 0.3.0 - 2026-10-11
+
+### Changed
+
+- Nothing is locked any more. Every lesson opens at any time from the lesson list, every skill can be picked in Drills and Sprint, and the stats bars show "new" instead of "locked". Prerequisites are now recommendations: the list marks the suggested next lesson ("next"), Home's Continue opens it, and a lesson whose prerequisites are not yet at 0.80 shows a small "Builds on: …" line with a link to each of them. The note appears once per lesson and never blocks.
+- The session planner chooses from skills on the suggested path plus every skill already practised or marked known, in any order. A focus skill with a weak prerequisite still runs; when no review is due, the warm-up becomes a light review of that prerequisite (5 untimed items).
+
+### Added
+
+- "I know this already" at the top of every lesson. It marks the skill as known, sets its knowledge estimate to 0.80 (the threshold, not 1.0, and never lower than an estimate already earned) and moves on to the suggested next lesson. Known skills are mixed into focus drills and cool-downs so a few answers check the claim.
+- "Reset this skill" on a lesson marked known, and Settings > Data > Reset one skill for any skill. A skill with real practice asks for a second tap. History is kept.
+- Capture screen `lesson-gap` (lesson S11 opened ahead of its prerequisite) for `ABAX_SHOT`; the demo profile marks A1 as known.
+
+### Save file
+
+- Two additive fields: `marked_known` on each skill and `builds_on_noted` at the top level. 0.2 profiles load unchanged; the format version stays 1, so 0.2.x can still open a 0.3.0 profile.
+- Android versionCode 300.
+
 ## 0.2.1 - 2026-10-12
 
 ### Fixed

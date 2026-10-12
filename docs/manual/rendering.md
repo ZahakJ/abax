@@ -154,7 +154,8 @@ driven by environment variables (desktop only).
 | `ABAX_BENCH=start` or `frames=N` | The benchmarks above. |
 
 Screens for `ABAX_SHOT`: `home`, `practice` (4071583 on the beads), `glass`
-(the same, part-way through the anzan fade), `lesson` (lesson S3), `drill`
+(the same, part-way through the anzan fade), `lesson` (lesson S3),
+`lesson-gap` (lesson S11, opened ahead of its prerequisite), `drill`
 (an S5 drill), `stats`, `lessons`, `flash` (the flash anzan setup),
 `flash-run` (a number mid-flash), `settings`. Anything else opens home.
 

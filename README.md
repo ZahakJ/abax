@@ -10,14 +10,14 @@ Abax teaches the soroban the way soroban schools do: first which finger moves wh
 
 ## Install
 
-Version 0.2.1. All files are on the [releases page](https://github.com/ZahakJ/abax/releases/latest), with `SHA256SUMS.txt`.
+Version 0.3.0. All files are on the [releases page](https://github.com/ZahakJ/abax/releases/latest), with `SHA256SUMS.txt`.
 
 - **Linux** (x86_64, installs to `~/.local/bin`, no root):
-  `curl -L https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-linux-x86_64.tar.gz | tar xz && ./abax-v0.2.1-linux-x86_64/install.sh`
+  `curl -L https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-linux-x86_64.tar.gz | tar xz && ./abax-v0.3.0-linux-x86_64/install.sh`
 - **Windows** (x86_64, PowerShell):
-  `iwr https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-windows-x86_64.zip -OutFile abax.zip; Expand-Archive abax.zip abax`
-- **macOS**: [Apple silicon dmg](https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-macos-aarch64.dmg) or [Intel dmg](https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-macos-x86_64.dmg); drag `Abax.app` to Applications.
-- **Android** 7.0 or newer: [arm64 APK](https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-android-arm64-v8a.apk) for almost every phone, or the [universal APK](https://github.com/ZahakJ/abax/releases/download/v0.2.1/abax-v0.2.1-android-universal.apk) for 32-bit phones and emulators.
+  `iwr https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-windows-x86_64.zip -OutFile abax.zip; Expand-Archive abax.zip abax`
+- **macOS**: [Apple silicon dmg](https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-macos-aarch64.dmg) or [Intel dmg](https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-macos-x86_64.dmg); drag `Abax.app` to Applications.
+- **Android** 7.0 or newer: [arm64 APK](https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-android-arm64-v8a.apk) for almost every phone, or the [universal APK](https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-android-universal.apk) for 32-bit phones and emulators.
 
 The desktop builds are not code-signed with a paid certificate: Windows SmartScreen needs "More info" > "Run anyway". The macOS app is ad-hoc signed but not notarized: on the first launch right-click it > Open (macOS 15 and later: System Settings > Privacy & Security > Open Anyway), or run once `xattr -cr /Applications/Abax.app`. Android has no sound in this version. Details are in [Getting started](https://zahakj.github.io/abax/manual/getting-started.html).
 
@@ -36,7 +36,7 @@ The desktop builds are not code-signed with a paid certificate: Windows SmartScr
 
 ## What it teaches
 
-Fifteen skills; each unlocks when its prerequisites are known well enough. Every skill has a lesson (explanation, demonstration, guided practice) and its own ladder of drills.
+Fifteen skills, all open from the start: take the lessons in any order and skip what you know with "I know this already". The prerequisites only suggest the next lesson. Every skill has a lesson (explanation, demonstration, guided practice) and its own ladder of drills.
 
 | | | | |
 |---|---|---|---|

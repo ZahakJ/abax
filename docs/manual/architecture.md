@@ -102,7 +102,10 @@ There are 115: 92 in `abax-core` and 23 in the app. They include:
 - the scheduler checklist from `research/trainer-design.md` section 3.8:
   the BKT sequence, the EWMA sequences, U(n), Elo monotonicity, the
   mastery gate rejecting four lucky answers and slow answers, forgetting
-  and the session planner never picking a locked skill;
+  and the session planner choosing only skills on the suggested path or
+  already met, adding a light review when a prerequisite is weak, and never
+  failing on any mix of known, practised and skipped skills; "I know this"
+  seeding 0.80 (not 1.0) and the per-skill reset;
 - save files: round trip, unknown fields ignored, missing fields defaulted,
   bad input an error rather than a crash; atomic write and backup on a damaged file.
 

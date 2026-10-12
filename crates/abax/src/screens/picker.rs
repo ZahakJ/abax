@@ -44,16 +44,8 @@ impl PickerState {
         );
         ui.add_space(8.0);
 
-        let unlocked: Vec<SkillId> = SkillId::ALL
-            .iter()
-            .copied()
-            .filter(|s| {
-                app.save.scheduler.is_unlocked(*s)
-                    && !matches!(s, SkillId::FlashOne | SkillId::FlashMulti)
-            })
-            .collect();
         if self.skill.is_none() {
-            self.skill = unlocked.last().copied();
+            self.skill = Some(default_skill(&app.save.scheduler));
         }
         let groups: [(&str, &[SkillId]); 6] = [
             ("Set and read", &[SkillId::Setting]),
@@ -78,11 +70,8 @@ impl PickerState {
             crate::ui::section(ui, &pal, title);
             ui.horizontal_wrapped(|ui| {
                 for s in skills {
-                    let on = unlocked.contains(s);
                     let selected = self.skill == Some(*s);
-                    let r = ui
-                        .add_enabled_ui(on, |ui| ui.selectable_label(selected, s.short_name()))
-                        .inner;
+                    let r = ui.selectable_label(selected, s.short_name());
                     if r.clicked() {
                         self.skill = Some(*s);
                         self.level_idx = None;
@@ -143,5 +132,38 @@ impl PickerState {
                 app.start_drill(spec, mode);
             }
         }
+    }
+}
+
+/// The skill the picker starts on: the furthest one in teaching order the
+/// learner has met, else the suggested next lesson, else S0. Every skill can
+/// be picked whatever this returns.
+pub fn default_skill(sched: &abax_core::scheduler::Scheduler) -> SkillId {
+    let drillable = |s: &SkillId| !matches!(s, SkillId::FlashOne | SkillId::FlashMulti);
+    SkillId::ALL
+        .into_iter()
+        .rev()
+        .find(|s| drillable(s) && sched.is_started(*s))
+        .or_else(|| sched.next_skill_to_learn().filter(drillable))
+        .unwrap_or(SkillId::Setting)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use abax_core::scheduler::Scheduler;
+
+    #[test]
+    fn default_skill_follows_what_the_learner_met() {
+        let mut s = Scheduler::default();
+        assert_eq!(default_skill(&s), SkillId::Setting);
+        s.record(SkillId::Divide, true, 10.0, 1_000);
+        assert_eq!(default_skill(&s), SkillId::Divide);
+        s.mark_known(SkillId::FlashMulti);
+        assert_eq!(
+            default_skill(&s),
+            SkillId::Divide,
+            "flash is not a drill here"
+        );
     }
 }

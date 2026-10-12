@@ -346,6 +346,8 @@ impl App {
                 t += secs as u64 + 2;
             }
         }
+        // The learner skipped the anzan lesson: "I know this already".
+        self.save.scheduler.mark_known(SkillId::Anzan);
     }
 
     fn run_shot(&mut self, ctx: &egui::Context) {
@@ -399,6 +401,11 @@ impl App {
             }
             "lesson" => {
                 self.screen = Screen::Lesson(LessonState::new(SkillId::AddFive));
+            }
+            "lesson-gap" => {
+                // A lesson opened ahead of the suggested path: S11 builds on
+                // S10, which the demo learner has not met.
+                self.screen = Screen::Lesson(LessonState::new(SkillId::Divide));
             }
             "glass" => {
                 // The anzan fade part-way: beads turning to glass.

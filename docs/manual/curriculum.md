@@ -8,10 +8,48 @@ Everything on this page comes from `crates/abax-core/src/curriculum.rs` and
 
 ## The graph
 
-A skill unlocks when **every** prerequisite has a knowledge estimate of at
-least 0.80 (see [the scheduler](scheduler.md)). It does not wait for the
-prerequisite to be fully mastered, so you meet the next idea while the
-previous one is still settling.
+Nothing is locked. Every lesson opens at any time, every drill can be
+picked, and you can take them in any order or skip the ones you already
+know. The prerequisites below are the **suggested** path, not a gate.
+
+A skill's prerequisites count as met when **every** one of them has a
+knowledge estimate of at least 0.80 (see [the scheduler](scheduler.md)).
+That threshold does three things, all of them advice:
+
+- **The suggested next lesson.** The lesson list marks one lesson *next*,
+  and Home's **Continue** opens it: the first skill, in the order of the
+  table, whose prerequisites are met and which you have neither practised
+  nor marked as known. It does not wait for the prerequisite to be fully
+  mastered, so you meet the next idea while the previous one is still
+  settling.
+- **The "builds on" note.** Open a lesson whose prerequisites are not met
+  yet and a small line under its title names them, for example *Builds on:
+  S10 Multiplication*, each a link to that lesson. The note appears the first
+  time only; it never blocks and never repeats.
+- **A light review in planned sessions,** described under
+  [the session planner](scheduler.md#what-today-the-session-planner).
+
+<picture>
+  <source srcset="../screenshots/lessons-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="../screenshots/lessons-light.png" alt="The lesson list: every lesson is open. Practised skills show their estimate and step, S8 is marked next, A1 is marked known, the rest are new." width="1000" height="720">
+</picture>
+
+### Skipping what you know
+
+Every lesson has **I know this already** at the top right. It marks the
+skill as known and moves you on to the suggested next lesson. Marking
+does not pretend you have mastered the skill: it sets the knowledge
+estimate to 0.80, the same threshold as above, not to 1. That is enough
+for later skills to count it as met, and low enough that the planner keeps
+checking it: a known skill is mixed into focus drills and cool-downs like
+any skill you have practised, and a few answers move the estimate to where
+it belongs. If you already had a higher estimate, marking never lowers it.
+
+Changed your mind? A lesson you marked shows **Reset this skill** in the same
+place, and **Settings → Data → Reset one skill** does the same for any
+skill. A reset puts that one skill back to new, as if never met; your
+history in Stats is kept. When the skill has real practice behind it, the
+reset asks for a second tap.
 
 | Id | Skill | Prerequisites |
 |----|-------|---------------|
