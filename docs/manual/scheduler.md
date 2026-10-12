@@ -71,9 +71,18 @@ The same slip early, from 0.9455 after three right answers, gives
 0.09455 / (0.09455 + 0.0545 × 0.80) = 0.684, then **0.716**: there was less
 evidence to protect the estimate.
 
-The [curriculum graph](curriculum.md#the-graph) uses *L* directly: a skill
-unlocks when every prerequisite has *L* ≥ 0.80. Three right answers in a
-row on S3 (0.9455) are already enough to open S5.
+The [curriculum graph](curriculum.md#the-graph) uses *L* directly: a
+skill's prerequisites count as met when every one has *L* ≥ 0.80. Three
+right answers in a row on S3 (0.9455) are already enough to make S5 the
+suggested next step. Nothing is ever locked, though: this only steers
+suggestions.
+
+**I know this already** sets *L* to exactly 0.80 (and θ to the matching
+ln(0.8 / 0.2) = 1.386) without adding any answers. One right answer from
+there: 0.72 / (0.72 + 0.20 × 0.20) = 0.947, then **0.953**. One wrong
+answer: 0.08 / (0.08 + 0.20 × 0.80) = 0.333, then **0.400**. A skill you
+only claimed to know confirms itself in one answer, and one slip drops it
+back below the threshold, so the planner treats it as new again.
 
 ## How are you doing lately? The accuracy average
 
@@ -187,9 +196,10 @@ untimed: up they go to three operands. The wrong answer at item 4 cost them
 about three items, which is the point: one error is not a catastrophe, but
 it is not ignored either.
 
-Unlocking follows the live estimate. S3's *L* passed 0.80 at item 3, which
-opened S5 (and S4, once S2 is there too); the error at item 4 closed it again
-until item 5.
+Readiness follows the live estimate. S3's *L* passed 0.80 at item 3, which
+made S5 a suggested next step (and S4, once S2 is there too); the error at
+item 4 took that back until item 5. The learner could have opened S5 at
+any point anyway.
 
 ## Are you done? The mastery gate
 
@@ -207,7 +217,7 @@ fail the count. A long history of eventual success fails the accuracy
 average if the last ten were shaky. Easy steps do not count as mastery of
 the hard ones. And knowing the rule while still counting beads one by one
 fails the speed condition. The learner above, after twelve items, is still
-on step 2 of 6: S3 is unlocked for what comes next, but not mastered.
+on step 2 of 6: S3 counts as met for what comes next, but is not mastered.
 
 ## Have you started to lose it? Forgetting and review
 
@@ -230,26 +240,41 @@ is removed and the interval resets to 1 day.
 
 ## What today? The session planner
 
-A planned session is three short drills, and each one picks from unlocked
-skills only.
+A planned session is three short drills. They pick from the skills on the
+suggested path (prerequisites met) plus every skill you have already met,
+practised or marked as known, in whatever order you took them. The planner
+always returns a plan; a gap in the prerequisites never stops it.
 
 1. **Warm-up, 7 items.** The due review that has waited longest, at its
-   current step. If nothing is due, the most recently mastered skill at its
-   top step. It is meant to be easy (target success about 90 %): start with
-   something you can do.
-2. **Focus, 12 items.** Among unlocked skills that are not yet mastered,
-   sort by *L*_eff and take the weakest, with probability 0.7, or the second
+   current step. If nothing is due and the focus skill below has a
+   prerequisite under 0.80 (you went ahead of the suggested path), a
+   **light review** of that prerequisite instead: 5 untimed items at its
+   current step, the weakest prerequisite first. Otherwise the most recently
+   mastered skill at its top step. It is meant to be easy (target success
+   about 90 %, 85 % for the light review): start with something you can do.
+2. **Focus, 12 items.** Among those skills that are not yet mastered, sort
+   by *L*_eff and take the weakest, with probability 0.7, or the second
    weakest, with probability 0.3, so that one stubborn skill does not fill
    every session. About 30 % of its items come from other skills you have
-   already practised, each at its own step. Target success about 80 %.
+   already met, each at its own step. Target success about 80 %. The focus
+   runs whatever the state of its prerequisites.
 3. **Cool-down, 6 items.** Untimed items from the skills you know well
    (*L*_eff ≥ 0.80), strongest first, mixed together, so the session ends
-   on things that go right.
+   on things that go right. A skill you marked as known starts here at
+   exactly 0.80, which is how "I know this already" gets checked.
 
-On a brand-new profile only S0 is unlocked, so the plan is a single 12-item
-S0 drill. And before any of this, the home screen's **Continue** sends you
-to the lesson of the first unlocked skill you have never tried: new ideas
-are taught before they are drilled.
+An example with a gap. A new learner opens S10 straight away and answers
+six multiplication items, half of them right, and has also done some S0.
+S10 is now a skill they have met, so the planner can choose it; with the
+lowest *L* it is the usual focus. Its prerequisite S8 has never been
+touched (*L* = 0.10), nothing is due, so the warm-up becomes five untimed
+S8 items at step 1, and then the twelve S10 items run as normal.
+
+On a brand-new profile the only skill on the path is S0, so the plan is a
+single 12-item S0 drill. And before any of this, the home screen's
+**Continue** sends you to the suggested next lesson, the first skill on the
+path you have neither tried nor marked as known: new ideas are taught
+before they are drilled. Every other lesson is one tap away in Lessons.
 
 ## Momentum, not streaks
 

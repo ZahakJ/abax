@@ -158,7 +158,7 @@ impl DrillState {
         let mut queue = Vec::with_capacity(n);
         let interleave = spec.interleave.clone();
         for i in 0..n {
-            // About 30 % interleaved items from other unlocked skills.
+            // About 30 % interleaved items from other skills the learner has met.
             let use_other = !interleave.is_empty() && mode == DrillMode::Normal && i % 10 >= 7;
             let (skill, level) = if use_other {
                 let s = interleave[app.rng.below(interleave.len() as u32) as usize];

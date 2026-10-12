@@ -39,8 +39,13 @@ pub const ELO_ALPHA: f64 = 1.0;
 /// Elo uncertainty function β.
 pub const ELO_BETA: f64 = 0.06;
 
-/// A prerequisite counts as satisfied at this `p_known`.
+/// A prerequisite counts as satisfied at this `p_known`. Since 0.3.0 this
+/// only shapes recommendations (the suggested next lesson, the "builds on"
+/// note, the planner's light review); no skill is ever locked. It is also
+/// the estimate "I know this already" seeds a skill with.
 pub const UNLOCK_THRESHOLD: f64 = 0.80;
+/// Items in the light review of a weak prerequisite the planner may add.
+pub const PREREQ_REVIEW_ITEMS: u8 = 5;
 /// `p_known` needed for the mastery flag.
 pub const MASTERY_P_KNOWN: f64 = 0.95;
 /// Attempts needed for the mastery flag.
@@ -160,6 +165,10 @@ pub struct SkillState {
     /// unset. Anchoring it keeps the step-up fluency check meaningful (a
     /// budget that followed the live average could never be beaten).
     pub budget_seconds: f64,
+    /// The learner said "I know this already" (added in 0.3.0; older saves
+    /// read `false`). The estimate was seeded, not earned, so the planner
+    /// keeps checking the skill with a few drills.
+    pub marked_known: bool,
 }
 
 impl Default for SkillState {
@@ -185,6 +194,7 @@ impl SkillState {
             consecutive_errors: 0,
             items_at_level: 0,
             budget_seconds: 0.0,
+            marked_known: false,
         }
     }
 
@@ -348,11 +358,53 @@ impl Scheduler {
         ladder[self.state(skill).level.min(ladder.len() - 1)]
     }
 
-    pub fn is_unlocked(&self, skill: SkillId) -> bool {
-        skill
+    /// Every prerequisite is known well enough (`p_known` at or above
+    /// [`UNLOCK_THRESHOLD`]). A recommendation only: every skill can be
+    /// opened, drilled and recorded whatever this says.
+    pub fn prerequisites_met(&self, skill: SkillId) -> bool {
+        self.weak_prerequisites(skill).is_empty()
+    }
+
+    /// Direct prerequisites that are not yet known well enough, weakest
+    /// first (ties keep teaching order).
+    pub fn weak_prerequisites(&self, skill: SkillId) -> Vec<SkillId> {
+        let mut weak: Vec<SkillId> = skill
             .prerequisites()
             .iter()
-            .all(|p| self.state(*p).p_known >= UNLOCK_THRESHOLD)
+            .copied()
+            .filter(|p| self.state(*p).p_known < UNLOCK_THRESHOLD)
+            .collect();
+        weak.sort_by(|a, b| self.state(*a).p_known.total_cmp(&self.state(*b).p_known));
+        weak
+    }
+
+    /// The learner has met this skill: practised it or marked it as known.
+    pub fn is_started(&self, skill: SkillId) -> bool {
+        let st = self.state(skill);
+        st.n > 0 || st.marked_known
+    }
+
+    /// "I know this already": seed the estimate to [`UNLOCK_THRESHOLD`] (never
+    /// to 1.0, and never lower than it already is) so later skills count it
+    /// as satisfied while the planner still checks it with a few drills.
+    /// Everything else the skill has earned is kept.
+    pub fn mark_known(&mut self, skill: SkillId) {
+        let mut st = self.state(skill);
+        if st.p_known < UNLOCK_THRESHOLD {
+            st.p_known = UNLOCK_THRESHOLD;
+        }
+        let theta = (UNLOCK_THRESHOLD / (1.0 - UNLOCK_THRESHOLD)).ln();
+        if st.theta < theta {
+            st.theta = theta;
+        }
+        st.marked_known = true;
+        self.skills.insert(skill, st);
+    }
+
+    /// "Reset this skill": back to a fresh state, as if never met. Undoes
+    /// [`Scheduler::mark_known`]; history (the stats log) is not touched.
+    pub fn reset_skill(&mut self, skill: SkillId) {
+        self.skills.insert(skill, SkillState::new(skill));
     }
 
     pub fn is_mastered(&self, skill: SkillId) -> bool {
@@ -485,12 +537,14 @@ impl Scheduler {
         st.budget_seconds = budget_per_operand(&ladder[idx], st.typical_seconds()).unwrap_or(0.0);
     }
 
-    /// The first skill in teaching order that is unlocked but has never been
-    /// attempted: where "Continue" should take the learner.
+    /// The suggested next lesson: the first skill in teaching order whose
+    /// prerequisites are met and which the learner has neither practised nor
+    /// marked as known. Where "Continue" takes the learner; any other lesson
+    /// can still be opened.
     pub fn next_skill_to_learn(&self) -> Option<SkillId> {
         SkillId::ALL
             .into_iter()
-            .find(|s| self.is_unlocked(*s) && self.state(*s).n == 0)
+            .find(|s| self.prerequisites_met(*s) && !self.is_started(*s))
     }
 
     /// Cold-start placement (§3.7): each skill probed with at least two items
@@ -508,17 +562,23 @@ impl Scheduler {
         }
     }
 
-    fn unlocked(&self) -> Vec<SkillId> {
+    /// Skills the planner may use: those whose prerequisites are met (the
+    /// suggested path) plus every skill the learner has already met, in
+    /// whatever order they took them.
+    fn plannable(&self) -> Vec<SkillId> {
         SkillId::ALL
             .into_iter()
-            .filter(|s| self.is_unlocked(*s))
+            .filter(|s| self.prerequisites_met(*s) || self.is_started(*s))
             .collect()
     }
 
-    /// Build the three-drill plan of §3.6. Never picks a locked skill.
+    /// Build the three-drill plan of §3.6 from the plannable skills. It
+    /// always returns a plan: a focus skill with weak prerequisites still
+    /// runs, and the warm-up becomes a light review of its weakest
+    /// prerequisite when no review is due.
     pub fn plan_session(&self, now: u64, rng: &mut Rng) -> SessionPlan {
-        let unlocked = self.unlocked();
-        if unlocked.len() <= 1 {
+        let pool = self.plannable();
+        if pool.len() <= 1 {
             return SessionPlan {
                 warmup: None,
                 focus: DrillSpec {
@@ -532,55 +592,37 @@ impl Scheduler {
             };
         }
 
-        // Warm-up: the due review with the longest gap, else the most
-        // recently mastered skill at its top step.
-        let mastered: Vec<SkillId> = unlocked
+        // Warm-up candidates: the due review with the longest gap, else the
+        // most recently mastered skill at its top step. Chosen after the
+        // focus, because a weak prerequisite of the focus can take the slot.
+        let mastered: Vec<SkillId> = pool
             .iter()
             .copied()
             .filter(|s| self.is_mastered(*s))
             .collect();
-        let warmup = {
-            let due = mastered
-                .iter()
-                .copied()
-                .filter(|s| self.is_due(*s, now))
-                .max_by(|a, b| {
-                    self.state(*a)
-                        .days_since(now)
-                        .total_cmp(&self.state(*b).days_since(now))
-                });
-            let pick = due.or_else(|| {
-                mastered
-                    .iter()
-                    .copied()
-                    .max_by_key(|s| self.state(*s).mastered_at.unwrap_or(0))
+        let due = mastered
+            .iter()
+            .copied()
+            .filter(|s| self.is_due(*s, now))
+            .max_by(|a, b| {
+                self.state(*a)
+                    .days_since(now)
+                    .total_cmp(&self.state(*b).days_since(now))
             });
-            pick.map(|skill| {
-                let ladder = skill.ladder();
-                let level = if due.is_some() {
-                    self.current_level(skill)
-                } else {
-                    ladder[ladder.len() - 1]
-                };
-                DrillSpec {
-                    skill,
-                    level,
-                    items: 7,
-                    interleave: Vec::new(),
-                    target_success: 0.90,
-                }
-            })
-        };
+        let recent = mastered
+            .iter()
+            .copied()
+            .max_by_key(|s| self.state(*s).mastered_at.unwrap_or(0));
 
-        // Focus: lowest p_eff among unlocked, unmastered skills (0.7), or the
-        // second lowest (0.3).
-        let mut candidates: Vec<SkillId> = unlocked
+        // Focus: lowest p_eff among plannable, unmastered skills (0.7), or
+        // the second lowest (0.3).
+        let mut candidates: Vec<SkillId> = pool
             .iter()
             .copied()
             .filter(|s| !self.is_mastered(*s))
             .collect();
         if candidates.is_empty() {
-            candidates = unlocked.clone();
+            candidates = pool.clone();
         }
         candidates.sort_by(|a, b| self.p_eff(*a, now).total_cmp(&self.p_eff(*b, now)));
         let idx = if candidates.len() > 1 && rng.next_f64() >= 0.7 {
@@ -589,11 +631,45 @@ impl Scheduler {
             0
         };
         let focus_skill = candidates[idx];
-        let interleave: Vec<SkillId> = unlocked
+        let interleave: Vec<SkillId> = pool
             .iter()
             .copied()
-            .filter(|s| *s != focus_skill && self.state(*s).n > 0)
+            .filter(|s| *s != focus_skill && self.is_started(*s))
             .collect();
+
+        // Warm-up: a due review comes first. Otherwise, when the focus skill
+        // was taken out of order, a light untimed look at its weakest
+        // prerequisite; otherwise the most recently mastered skill.
+        let warmup = if let Some(skill) = due {
+            Some(DrillSpec {
+                skill,
+                level: self.current_level(skill),
+                items: 7,
+                interleave: Vec::new(),
+                target_success: 0.90,
+            })
+        } else if let Some(&weak) = self.weak_prerequisites(focus_skill).first() {
+            let mut level = self.current_level(weak);
+            level.timing = Timing::Untimed;
+            Some(DrillSpec {
+                skill: weak,
+                level,
+                items: PREREQ_REVIEW_ITEMS,
+                interleave: Vec::new(),
+                target_success: 0.85,
+            })
+        } else {
+            recent.map(|skill| {
+                let ladder = skill.ladder();
+                DrillSpec {
+                    skill,
+                    level: ladder[ladder.len() - 1],
+                    items: 7,
+                    interleave: Vec::new(),
+                    target_success: 0.90,
+                }
+            })
+        };
         let focus = DrillSpec {
             skill: focus_skill,
             level: self.current_level(focus_skill),
@@ -603,10 +679,10 @@ impl Scheduler {
         };
 
         // Cool-down: untimed mix of everything the learner knows well.
-        let mut strong: Vec<SkillId> = unlocked
+        let mut strong: Vec<SkillId> = pool
             .iter()
             .copied()
-            .filter(|s| self.state(*s).n > 0 && self.p_eff(*s, now) >= 0.8)
+            .filter(|s| self.is_started(*s) && self.p_eff(*s, now) >= 0.8)
             .collect();
         strong.sort_by(|a, b| self.p_eff(*b, now).total_cmp(&self.p_eff(*a, now)));
         let cooldown = strong.first().map(|&skill| {
@@ -957,23 +1033,23 @@ mod tests {
     }
 
     #[test]
-    fn unlocking_follows_prerequisites() {
+    fn readiness_follows_prerequisites() {
         let mut s = Scheduler::default();
-        assert!(s.is_unlocked(SkillId::Setting));
-        assert!(!s.is_unlocked(SkillId::AddSimple));
+        assert!(s.prerequisites_met(SkillId::Setting));
+        assert!(!s.prerequisites_met(SkillId::AddSimple));
         let mut st = s.state(SkillId::Setting);
         st.p_known = 0.85;
         s.set_state(SkillId::Setting, st);
-        assert!(s.is_unlocked(SkillId::AddSimple));
-        assert!(s.is_unlocked(SkillId::SubSimple));
-        assert!(!s.is_unlocked(SkillId::AddFive));
+        assert!(s.prerequisites_met(SkillId::AddSimple));
+        assert!(s.prerequisites_met(SkillId::SubSimple));
+        assert!(!s.prerequisites_met(SkillId::AddFive));
         assert_eq!(s.next_skill_to_learn(), Some(SkillId::Setting));
         s.record(SkillId::Setting, true, 2.0, 1_000);
         assert_eq!(s.next_skill_to_learn(), Some(SkillId::AddSimple));
     }
 
     #[test]
-    fn planner_never_picks_locked_skill() {
+    fn planner_picks_ready_or_started_skills() {
         let mut s = Scheduler::default();
         let mut st = s.state(SkillId::Setting);
         st.p_known = 0.9;
@@ -991,7 +1067,10 @@ mod tests {
                 picked.extend(d.interleave.iter().copied());
             }
             for p in picked {
-                assert!(s.is_unlocked(p), "{p:?} is locked");
+                assert!(
+                    s.prerequisites_met(p) || s.is_started(p),
+                    "{p:?} is neither ready nor started"
+                );
             }
             assert!(matches!(
                 plan.focus.skill,
@@ -1109,8 +1188,8 @@ mod tests {
         let mut st = s.state(SkillId::Setting);
         st.p_known = 0.9;
         s.set_state(SkillId::Setting, st);
-        assert!(s.is_unlocked(skill));
-        assert!(!s.is_unlocked(SkillId::AddFive));
+        assert!(s.prerequisites_met(skill));
+        assert!(!s.prerequisites_met(SkillId::AddFive));
 
         let mut mastered_after = None;
         for i in 0..60u64 {
@@ -1126,7 +1205,7 @@ mod tests {
         assert!(n <= 60, "{n}");
         assert!(s.is_mastered(skill));
         assert!(s.state(skill).level + 2 >= skill.ladder().len());
-        assert!(s.is_unlocked(SkillId::AddFive));
+        assert!(s.prerequisites_met(SkillId::AddFive));
         assert_eq!(s.next_skill_to_learn(), Some(SkillId::Setting));
     }
 
@@ -1137,5 +1216,199 @@ mod tests {
         let json = serde_json::to_string(&s).unwrap();
         let back: Scheduler = serde_json::from_str(&json).unwrap();
         assert_eq!(s, back);
+    }
+
+    // --- Out-of-order learning (0.3.0) -----------------------------------
+
+    #[test]
+    fn every_skill_records_whatever_its_prerequisites() {
+        // Division with nothing else known: drills still run and count.
+        let mut s = Scheduler::default();
+        assert!(!s.prerequisites_met(SkillId::Divide));
+        assert_eq!(
+            s.weak_prerequisites(SkillId::Divide),
+            vec![SkillId::Multiply]
+        );
+        for i in 0..30u64 {
+            s.record(SkillId::Divide, true, 20.0, 1_000 + i * 30);
+        }
+        let st = s.state(SkillId::Divide);
+        assert_eq!(st.n, 30);
+        assert!(st.p_known > 0.95);
+        assert!(s.is_started(SkillId::Divide));
+        // Its prerequisite is still weak and still the suggested path.
+        assert!(!s.prerequisites_met(SkillId::Divide));
+        assert_eq!(s.next_skill_to_learn(), Some(SkillId::Setting));
+    }
+
+    #[test]
+    fn out_of_order_mastery_is_kept_and_counts_for_later_skills() {
+        let mut s = Scheduler::default();
+        // Learn S5 (big friends, adding) before S3 and S4.
+        let skill = SkillId::AddTen;
+        let mut mastered = false;
+        for i in 0..120u64 {
+            let out = s.record(skill, i % 20 != 19, 3.0, 10_000 + i * 30);
+            mastered |= out.newly_mastered;
+            if mastered {
+                break;
+            }
+        }
+        assert!(mastered, "S5 mastered out of order");
+        assert!(s.is_mastered(skill));
+        // S6 needs S4 and S5: S5 now counts, S4 is the only gap.
+        assert_eq!(
+            s.weak_prerequisites(SkillId::SubTen),
+            vec![SkillId::SubFive]
+        );
+        // S5 is no longer suggested; the suggestion stays at the start.
+        assert_eq!(s.next_skill_to_learn(), Some(SkillId::Setting));
+    }
+
+    #[test]
+    fn mark_known_seeds_the_threshold_not_one() {
+        let mut s = Scheduler::default();
+        s.mark_known(SkillId::Setting);
+        let st = s.state(SkillId::Setting);
+        assert!(close(st.p_known, UNLOCK_THRESHOLD, 1e-12));
+        assert!(st.p_known < 1.0);
+        assert!(close(st.theta, (0.8f64 / 0.2).ln(), 1e-12));
+        assert!(st.marked_known);
+        assert_eq!(st.n, 0);
+        assert!(st.mastered_at.is_none(), "known is not mastered");
+        assert!(s.is_started(SkillId::Setting));
+        // Its dependents now count as ready and the suggestion moves on.
+        assert!(s.prerequisites_met(SkillId::AddSimple));
+        assert_eq!(s.next_skill_to_learn(), Some(SkillId::AddSimple));
+    }
+
+    #[test]
+    fn mark_known_never_lowers_an_earned_estimate() {
+        let mut s = Scheduler::default();
+        let mut st = s.state(SkillId::AddSimple);
+        st.p_known = 0.97;
+        st.theta = 3.0;
+        st.n = 40;
+        st.level = 4;
+        s.set_state(SkillId::AddSimple, st);
+        s.mark_known(SkillId::AddSimple);
+        let after = s.state(SkillId::AddSimple);
+        assert!(close(after.p_known, 0.97, 1e-12));
+        assert!(close(after.theta, 3.0, 1e-12));
+        assert_eq!(after.n, 40);
+        assert_eq!(after.level, 4);
+        assert!(after.marked_known);
+    }
+
+    #[test]
+    fn reset_skill_undoes_mark_known_and_practice() {
+        let mut s = Scheduler::default();
+        s.mark_known(SkillId::Setting);
+        s.record(SkillId::Setting, true, 2.0, 1_000);
+        s.mark_known(SkillId::AddSimple);
+        s.reset_skill(SkillId::Setting);
+        assert_eq!(s.state(SkillId::Setting), SkillState::new(SkillId::Setting));
+        assert!(!s.is_started(SkillId::Setting));
+        assert!(!s.prerequisites_met(SkillId::AddSimple));
+        // Other skills are untouched.
+        assert!(s.state(SkillId::AddSimple).marked_known);
+        assert_eq!(s.next_skill_to_learn(), Some(SkillId::Setting));
+    }
+
+    #[test]
+    fn marked_known_skill_is_checked_by_the_planner() {
+        let mut s = Scheduler::default();
+        s.mark_known(SkillId::Setting);
+        s.mark_known(SkillId::AddSimple);
+        let mut seen = false;
+        let mut rng = Rng::new(5);
+        for _ in 0..50 {
+            let plan = s.plan_session(5_000, &mut rng);
+            // Never practised, but it appears: interleaved or in the cool-down.
+            let mut skills: Vec<SkillId> = plan.focus.interleave.clone();
+            skills.push(plan.focus.skill);
+            if let Some(c) = &plan.cooldown {
+                skills.push(c.skill);
+                skills.extend(c.interleave.iter().copied());
+            }
+            seen |= skills.contains(&SkillId::AddSimple);
+            assert!(plan.cooldown.is_some(), "known skills feed the cool-down");
+        }
+        assert!(seen);
+    }
+
+    #[test]
+    fn planner_with_gaps_adds_a_light_prerequisite_review() {
+        // The learner jumped to multiplication; S8 (its prerequisite) is weak.
+        let mut s = Scheduler::default();
+        for i in 0..6u64 {
+            s.record(SkillId::Multiply, i % 2 == 0, 10.0, 1_000 + i * 30);
+        }
+        // Make Multiply the lowest estimate so it is the focus.
+        let mut st = s.state(SkillId::Setting);
+        st.p_known = 0.9;
+        st.n = 5;
+        st.last_practised = 1_000;
+        s.set_state(SkillId::Setting, st);
+        let mut st = s.state(SkillId::Multiply);
+        st.p_known = 0.05;
+        s.set_state(SkillId::Multiply, st);
+        let mut rng = Rng::new(11);
+        let mut multiply_focus = 0;
+        for i in 0..200u64 {
+            let plan = s.plan_session(2_000 + i * 600, &mut rng);
+            if plan.focus.skill != SkillId::Multiply {
+                continue;
+            }
+            multiply_focus += 1;
+            assert_eq!(plan.focus.level, s.current_level(SkillId::Multiply));
+            let warm = plan.warmup.expect("a light review of the gap");
+            assert_eq!(warm.skill, SkillId::MultiAdd);
+            assert_eq!(warm.items, PREREQ_REVIEW_ITEMS);
+            assert_eq!(warm.level.timing, Timing::Untimed);
+        }
+        assert!(multiply_focus > 100, "{multiply_focus}");
+    }
+
+    #[test]
+    fn due_review_keeps_the_warmup_slot_over_a_gap() {
+        let mut s = Scheduler::default();
+        let mut st = SkillState::new(SkillId::Setting);
+        st.p_known = 0.99;
+        st.acc_ewma = 0.95;
+        st.n = 60;
+        st.last_practised = 1_000;
+        st.mastered_at = Some(1_000);
+        s.set_state(SkillId::Setting, st);
+        s.record(SkillId::Divide, false, 30.0, 1_000);
+        let plan = s.plan_session(1_000 + 3 * DAY, &mut Rng::new(1));
+        assert_eq!(plan.warmup.unwrap().skill, SkillId::Setting);
+    }
+
+    #[test]
+    fn planner_never_panics_on_any_mix_of_known_and_started() {
+        let mut rng = Rng::new(99);
+        for round in 0..200u64 {
+            let mut s = Scheduler::default();
+            for skill in SkillId::ALL {
+                match rng.below(4) {
+                    0 => s.mark_known(skill),
+                    1 => {
+                        for i in 0..rng.below(15) {
+                            s.record(skill, rng.below(3) > 0, 4.0, 1_000 + u64::from(i) * 20);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            let plan = s.plan_session(5_000 + round * DAY, &mut rng);
+            for d in [&plan.warmup, &Some(plan.focus.clone()), &plan.cooldown]
+                .into_iter()
+                .flatten()
+            {
+                assert!(d.items > 0);
+                assert!(d.skill.ladder().contains(&d.level) || d.level.timing == Timing::Untimed);
+            }
+        }
     }
 }

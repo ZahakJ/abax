@@ -44,7 +44,8 @@ multiplication and division the step-by-step procedure takes that role.
 - **Drills** on the home screen: choose a skill (grouped as set and read,
   add and subtract, longer numbers, multiply, divide, anzan), a step on its
   ladder (it starts at your current step; you can move it either way) and
-  the number of items. Locked skills cannot be chosen.
+  the number of items. Every skill can be chosen, whatever you have learned
+  so far; it starts on the furthest skill you have met.
 - **Sprint**: choose a skill and a step; you get as many items as you can
   answer in 60 seconds. The clock ends the sprint, not a mistake.
 - **Lessons** end in three guided items (not recorded), then a 10-item drill.

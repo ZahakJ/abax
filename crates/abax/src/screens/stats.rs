@@ -57,7 +57,7 @@ impl StatsState {
 
             crate::ui::section(ui, &pal, "Skills");
             for skill in SkillId::ALL {
-                let unlocked = app.save.scheduler.is_unlocked(skill);
+                let started = app.save.scheduler.is_started(skill);
                 let mastered = app.save.scheduler.is_mastered(skill);
                 let p = app.save.scheduler.p_eff(skill, now) as f32;
                 let label = if ui.available_width() > 640.0 {
@@ -66,7 +66,7 @@ impl StatsState {
                     skill.short_name()
                 };
                 let r = ui.scope(|ui| {
-                    charts::mastery_bar(ui, &pal, label, p, mastered, !unlocked);
+                    charts::mastery_bar(ui, &pal, label, p, mastered, !started);
                 });
                 if r.response.interact(egui::Sense::click()).clicked() {
                     self.skill = Some(skill);

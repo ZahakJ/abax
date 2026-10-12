@@ -46,7 +46,10 @@ files:
   one wrote, as long as the version number did not change.
 - **Missing fields take their defaults**, so a newer Abax can open an older
   file. The `finish` setting was added in 0.2.0; a 0.1.0 profile has no such
-  field and loads as walnut.
+  field and loads as walnut. 0.3.0 added `marked_known` to each skill and
+  `builds_on_noted` at the top level; a 0.2 profile loads with every skill
+  unmarked and no notes shown. Both changes are additive, so the version
+  stays 1 and 0.2.x can still open a 0.3.0 file (it ignores the two fields).
 
 When the curriculum gains a skill, loading fills in a fresh state for it.
 When a change needs real conversion, the version number goes up and
@@ -96,7 +99,8 @@ is shown.
         "review_interval_days": 1.0,
         "consecutive_errors": 0,      // on the current step
         "items_at_level": 1,          // since the last step change
-        "budget_seconds": 0.0         // time budget per operand on a timed step
+        "budget_seconds": 0.0,        // time budget per operand on a timed step
+        "marked_known": false         // "I know this already" (0.3.0)
       }
     }
   },
@@ -114,7 +118,9 @@ is shown.
     ]
   },
   "created": 1760000000,              // unix seconds the profile was created
-  "updated": 1760000060               // unix seconds of the last save
+  "updated": 1760000060,              // unix seconds of the last save
+  "builds_on_noted": []               // lessons whose "builds on" note was
+                                      // shown once, e.g. ["Divide"] (0.3.0)
 }
 ```
 

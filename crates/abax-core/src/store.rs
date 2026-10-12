@@ -4,6 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::curriculum::SkillId;
 use crate::scheduler::Scheduler;
 use crate::stats::History;
 
@@ -109,6 +110,9 @@ pub struct SaveFile {
     pub created: u64,
     /// Unix seconds of the last save.
     pub updated: u64,
+    /// Lessons whose "builds on" note has been shown once (added in 0.3.0;
+    /// older saves read empty). The note never appears twice.
+    pub builds_on_noted: Vec<SkillId>,
 }
 
 impl Default for SaveFile {
@@ -120,6 +124,7 @@ impl Default for SaveFile {
             history: History::default(),
             created: 0,
             updated: 0,
+            builds_on_noted: Vec::new(),
         }
     }
 }
@@ -174,6 +179,17 @@ impl SaveFile {
         Ok(save.migrate())
     }
 
+    /// Record that the "builds on" note for `skill` has been shown. Returns
+    /// true the first time only, so the caller shows it at most once.
+    pub fn note_builds_on(&mut self, skill: SkillId) -> bool {
+        if self.builds_on_noted.contains(&skill) {
+            false
+        } else {
+            self.builds_on_noted.push(skill);
+            true
+        }
+    }
+
     /// Bring an older document up to the current format. Version 1 only
     /// needs the curriculum filled in; later versions chain their steps here.
     pub fn migrate(mut self) -> Self {
@@ -188,7 +204,6 @@ impl SaveFile {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::curriculum::SkillId;
     use crate::stats::{Attempt, DrillKind};
 
     #[test]
@@ -263,7 +278,7 @@ mod tests {
         assert_eq!(st.n, 3);
         assert!((st.p_known - 0.9).abs() < 1e-12);
         assert_eq!(save.scheduler.states().count(), SkillId::ALL.len());
-        assert!(save.scheduler.is_unlocked(SkillId::AddSimple));
+        assert!(save.scheduler.prerequisites_met(SkillId::AddSimple));
     }
 
     #[test]
@@ -291,5 +306,30 @@ mod tests {
         ));
         let err = SaveFile::from_json("{}").unwrap_err();
         assert!(err.to_string().contains("version 0"));
+    }
+
+    #[test]
+    fn v0_2_save_loads_unchanged_and_marked_known_round_trips() {
+        // A skill record exactly as 0.2.1 wrote it: no `marked_known` field.
+        let old = r#"{"version":1,"scheduler":{"skills":{"AddFive":{"p_known":0.83,"acc_ewma":0.9,"log_t_ewma":1.2,"theta":1.1,"n":14,"level":2,"last_practised":1700000000,"mastered_at":null,"review_interval_days":1.0,"consecutive_errors":0,"items_at_level":3,"budget_seconds":0.0}}}}"#;
+        let save = SaveFile::from_json(old).unwrap();
+        assert_eq!(save.version, CURRENT_VERSION);
+        assert_eq!(CURRENT_VERSION, 1, "the format change is additive");
+        let st = save.scheduler.state(SkillId::AddFive);
+        assert!(!st.marked_known);
+        assert_eq!(st.n, 14);
+        assert_eq!(st.level, 2);
+        assert!((st.p_known - 0.83).abs() < 1e-12);
+
+        assert!(save.builds_on_noted.is_empty());
+        let mut save = save;
+        save.scheduler.mark_known(SkillId::Setting);
+        save.note_builds_on(SkillId::Divide);
+        assert!(!save.note_builds_on(SkillId::Divide), "only once");
+        let json = save.to_json();
+        assert!(json.contains(r#""marked_known":true"#));
+        let back = SaveFile::from_json(&json).unwrap();
+        assert_eq!(back, save);
+        assert!(back.scheduler.state(SkillId::Setting).marked_known);
     }
 }

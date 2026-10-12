@@ -214,14 +214,14 @@ pub fn mastery_bar(
     label: &str,
     value: f32,
     mastered: bool,
-    locked: bool,
+    not_started: bool,
 ) {
     let h = 22.0;
     let w = ui.available_width();
     let (rect, _) = ui.allocate_exact_size(vec2(w, h), Sense::hover());
     let p = ui.painter();
     let label_w = (w * 0.42).min(270.0);
-    let col = if locked {
+    let col = if not_started {
         with_alpha(pal.ink_soft, 0.6)
     } else {
         pal.ink
@@ -244,7 +244,7 @@ pub fn mastery_bar(
         Stroke::NONE,
         StrokeKind::Inside,
     );
-    if !locked {
+    if !not_started {
         let fill = Rect::from_min_max(
             bar.min,
             pos2(
@@ -263,8 +263,8 @@ pub fn mastery_bar(
             );
         }
     }
-    let txt = if locked {
-        "locked".to_string()
+    let txt = if not_started {
+        "new".to_string()
     } else if mastered {
         "done".to_string()
     } else {

@@ -20,6 +20,11 @@ pub struct LessonState {
     next_at: f64,
     autoplay: bool,
     procedure: Option<abax_core::arith::Procedure>,
+    /// Weak prerequisites to mention on this visit; decided once, on the
+    /// first frame, and only if the note was never shown for this lesson.
+    builds_on: Option<Vec<SkillId>>,
+    /// A second tap is needed to reset a skill that has real practice.
+    confirm_reset: bool,
 }
 
 impl LessonState {
@@ -35,6 +40,8 @@ impl LessonState {
             next_at: 0.0,
             autoplay: true,
             procedure: None,
+            builds_on: None,
+            confirm_reset: false,
         }
     }
 
@@ -139,11 +146,71 @@ impl LessonState {
             self.setup_demo(app, now);
         }
         let l = lesson(self.skill);
+        if self.builds_on.is_none() {
+            let weak = app.save.scheduler.weak_prerequisites(self.skill);
+            let show = !weak.is_empty() && app.save.note_builds_on(self.skill);
+            if show {
+                app.mark_dirty();
+            }
+            self.builds_on = Some(if show { weak } else { Vec::new() });
+        }
         let title = format!("Lesson {}", self.skill.code());
-        if crate::ui::header(ui, &pal, Some("Lessons"), &title, |_| {}) {
+        let st = app.save.scheduler.state(self.skill);
+        let narrow = ui.available_width() < 480.0;
+        let mut know = false;
+        let mut reset = false;
+        let back = crate::ui::header(ui, &pal, Some("Lessons"), &title, |ui| {
+            if st.marked_known || self.confirm_reset {
+                let label = if self.confirm_reset {
+                    "Tap again to reset"
+                } else if narrow {
+                    "Reset skill"
+                } else {
+                    "Reset this skill"
+                };
+                reset = ui
+                    .button(RichText::new(label).color(pal.ink_soft))
+                    .on_hover_text("Forget the estimate for this skill and start it fresh")
+                    .clicked();
+            } else {
+                let label = if narrow {
+                    "I know this"
+                } else {
+                    "I know this already"
+                };
+                know = ui
+                    .button(label)
+                    .on_hover_text(
+                        "Skip ahead: the skill counts as known, and a few drills will check it",
+                    )
+                    .clicked();
+            }
+        });
+        if back {
             app.view.interactive = true;
             app.screen = crate::Screen::Lessons;
             return;
+        }
+        if know {
+            app.save.scheduler.mark_known(self.skill);
+            app.mark_dirty();
+            app.view.interactive = true;
+            app.screen = match app.save.scheduler.next_skill_to_learn() {
+                Some(next) if next != self.skill => crate::Screen::Lesson(LessonState::new(next)),
+                _ => crate::Screen::Lessons,
+            };
+            return;
+        }
+        if reset {
+            // Nothing earned is lost when the skill was only marked: reset at
+            // once. Real practice takes a second tap.
+            if st.n == 0 || self.confirm_reset {
+                app.save.scheduler.reset_skill(self.skill);
+                app.mark_dirty();
+                self.confirm_reset = false;
+            } else {
+                self.confirm_reset = true;
+            }
         }
         ui.label(
             RichText::new(l.title)
@@ -151,6 +218,37 @@ impl LessonState {
                 .strong()
                 .color(pal.ink),
         );
+        if st.marked_known && !self.confirm_reset {
+            ui.label(
+                RichText::new("You marked this as known. Drills will check it now and then.")
+                    .color(pal.ink_soft)
+                    .small(),
+            );
+        }
+        let notes = self.builds_on.clone().unwrap_or_default();
+        if !notes.is_empty() {
+            ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing.x = 4.0;
+                ui.label(RichText::new("Builds on:").color(pal.ink_soft).small());
+                for (i, p) in notes.iter().enumerate() {
+                    let r = ui.add(
+                        egui::Button::new(
+                            RichText::new(builds_on_label(*p)).color(pal.accent).small(),
+                        )
+                        .frame(false),
+                    );
+                    if r.clicked() {
+                        app.screen = crate::Screen::Lesson(LessonState::new(*p));
+                    }
+                    if i + 1 < notes.len() {
+                        ui.label(RichText::new("·").color(pal.ink_soft).small());
+                    }
+                }
+            });
+            if !matches!(app.screen, crate::Screen::Placeholder) {
+                return;
+            }
+        }
         egui::ScrollArea::vertical()
             .max_height(ui.available_height() * 0.38)
             .show(ui, |ui| {
@@ -318,40 +416,77 @@ pub fn describe_step(st: &Step) -> String {
     s
 }
 
+/// The short name of a lesson for the "builds on" note: code plus the part
+/// of the title before any colon ("S3 Small friends").
+pub fn builds_on_label(skill: SkillId) -> String {
+    let title = lesson(skill).title;
+    let short = title.split(':').next().unwrap_or(title).trim();
+    format!("{} {}", skill.code(), short)
+}
+
+/// One row of the lesson list, as data. Every row opens its lesson: there
+/// is no locked state.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LessonRow {
+    pub skill: SkillId,
+    pub status: String,
+    /// The suggested next lesson (one at most).
+    pub suggested: bool,
+    pub mastered: bool,
+}
+
+/// The lesson list for a scheduler state, in teaching order.
+pub fn lesson_rows(sched: &abax_core::scheduler::Scheduler, now: u64) -> Vec<LessonRow> {
+    let next = sched.next_skill_to_learn();
+    SkillId::ALL
+        .into_iter()
+        .map(|skill| {
+            let st = sched.state(skill);
+            let mastered = sched.is_mastered(skill);
+            let suggested = next == Some(skill);
+            let status = if mastered {
+                "mastered".to_string()
+            } else if suggested {
+                "next".to_string()
+            } else if st.n == 0 && st.marked_known {
+                "known".to_string()
+            } else if st.n == 0 {
+                "new".to_string()
+            } else {
+                format!(
+                    "{}% · step {}/{}",
+                    (sched.p_eff(skill, now) * 100.0).round() as i32,
+                    st.level + 1,
+                    skill.ladder().len()
+                )
+            };
+            LessonRow {
+                skill,
+                status,
+                suggested,
+                mastered,
+            }
+        })
+        .collect()
+}
+
 pub fn list(app: &mut App, ui: &mut Ui) {
     let pal = app.palette;
     if crate::ui::header(ui, &pal, None, "Lessons", |_| {}) {
         app.go_home();
         return;
     }
-    ui.label(RichText::new("Each lesson explains one idea, shows it on the beads, then lets you try it with hints. Lessons unlock as the ones before them settle in.").color(pal.ink_soft));
+    ui.label(RichText::new("Each lesson explains one idea, shows it on the beads, then lets you try it with hints. Open any of them, in any order; “next” marks the suggested path. Already know one? Open it and tap “I know this already”.").color(pal.ink_soft));
     ui.add_space(8.0);
     let now = crate::storage::now_unix();
+    let rows = lesson_rows(&app.save.scheduler, now);
     egui::ScrollArea::vertical().show(ui, |ui| {
         crate::ui::card(ui, &pal, |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
-            let n = SkillId::ALL.len();
-            for (i, skill) in SkillId::ALL.into_iter().enumerate() {
-                let unlocked = app.save.scheduler.is_unlocked(skill);
-                let mastered = app.save.scheduler.is_mastered(skill);
-                let p = app.save.scheduler.p_eff(skill, now);
-                let st = app.save.scheduler.state(skill);
-                let status = if !unlocked {
-                    "locked".to_string()
-                } else if mastered {
-                    "mastered".to_string()
-                } else if st.n == 0 {
-                    "new".to_string()
-                } else {
-                    format!(
-                        "{}% · step {}/{}",
-                        (p * 100.0).round() as i32,
-                        st.level + 1,
-                        skill.ladder().len()
-                    )
-                };
-                if lesson_row(ui, &pal, skill, &status, unlocked, mastered).clicked() {
-                    app.screen = crate::Screen::Lesson(LessonState::new(skill));
+            let n = rows.len();
+            for (i, row) in rows.iter().enumerate() {
+                if lesson_row(ui, &pal, row).clicked() {
+                    app.screen = crate::Screen::Lesson(LessonState::new(row.skill));
                 }
                 if i + 1 < n {
                     let w = ui.available_width();
@@ -369,38 +504,21 @@ pub fn list(app: &mut App, ui: &mut Ui) {
 }
 
 /// One row of the lesson list: code, name, status; the whole row is the
-/// button.
-fn lesson_row(
-    ui: &mut Ui,
-    pal: &crate::theme::Palette,
-    skill: SkillId,
-    status: &str,
-    unlocked: bool,
-    mastered: bool,
-) -> egui::Response {
+/// button, always enabled.
+pub fn lesson_row(ui: &mut Ui, pal: &crate::theme::Palette, row: &LessonRow) -> egui::Response {
+    let skill = row.skill;
     let w = ui.available_width();
-    let sense = if unlocked {
-        egui::Sense::click()
-    } else {
-        egui::Sense::hover()
-    };
-    let (rect, resp) = ui.allocate_exact_size(egui::vec2(w, 40.0), sense);
-    resp.widget_info(|| {
-        egui::WidgetInfo::labeled(egui::WidgetType::Button, unlocked, skill.name())
-    });
+    let (rect, resp) = ui.allocate_exact_size(egui::vec2(w, 40.0), egui::Sense::click());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, skill.name()));
     let p = ui.painter();
-    if unlocked && resp.hovered() {
+    if resp.hovered() {
         p.rect_filled(
             rect.expand2(egui::vec2(6.0, 0.0)),
             6.0,
             crate::theme::mix(pal.paper2, pal.accent, 0.08),
         );
     }
-    let ink = if unlocked {
-        pal.ink
-    } else {
-        crate::theme::with_alpha(pal.ink_soft, 0.7)
-    };
+    let ink = pal.ink;
     let narrow = w < 420.0;
     let code_w = 40.0;
     p.text(
@@ -408,7 +526,7 @@ fn lesson_row(
         egui::Align2::LEFT_CENTER,
         skill.code(),
         egui::FontId::monospace(14.0),
-        if unlocked { pal.accent } else { ink },
+        pal.accent,
     );
     p.text(
         egui::pos2(rect.left() + code_w, rect.center().y),
@@ -424,9 +542,79 @@ fn lesson_row(
     p.text(
         egui::pos2(rect.right(), rect.center().y),
         egui::Align2::RIGHT_CENTER,
-        status,
+        &row.status,
         egui::FontId::proportional(13.0),
-        if mastered { pal.ok } else { pal.ink_soft },
+        if row.mastered {
+            pal.ok
+        } else if row.suggested {
+            pal.accent
+        } else {
+            pal.ink_soft
+        },
     );
     resp
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use abax_core::scheduler::Scheduler;
+
+    #[test]
+    fn no_lesson_is_ever_locked() {
+        // A fresh profile, one with gaps, and one taken out of order.
+        let fresh = Scheduler::default();
+        let mut gaps = Scheduler::default();
+        gaps.mark_known(SkillId::Setting);
+        gaps.record(SkillId::Divide, true, 10.0, 1_000);
+        let mut jumped = Scheduler::default();
+        jumped.mark_known(SkillId::FlashMulti);
+        for sched in [fresh, gaps, jumped] {
+            let rows = lesson_rows(&sched, 2_000);
+            assert_eq!(rows.len(), SkillId::ALL.len());
+            for r in &rows {
+                assert!(!r.status.contains("lock"), "{:?}: {}", r.skill, r.status);
+            }
+            assert!(rows.iter().filter(|r| r.suggested).count() <= 1);
+        }
+    }
+
+    #[test]
+    fn statuses_show_next_known_and_progress() {
+        let mut s = Scheduler::default();
+        let rows = lesson_rows(&s, 0);
+        assert_eq!(rows[0].status, "next");
+        assert!(rows[0].suggested);
+        assert!(rows[1..].iter().all(|r| r.status == "new"));
+        s.mark_known(SkillId::Setting);
+        s.record(SkillId::Divide, true, 10.0, 1_000);
+        let rows = lesson_rows(&s, 1_000);
+        assert_eq!(rows[0].status, "known");
+        assert_eq!(rows[1].status, "next");
+        let div = rows.iter().find(|r| r.skill == SkillId::Divide).unwrap();
+        assert!(div.status.contains("step 1/"), "{}", div.status);
+    }
+
+    #[test]
+    fn every_row_is_an_enabled_button() {
+        let ctx = egui::Context::default();
+        let rows = lesson_rows(&Scheduler::default(), 0);
+        let mut seen = 0;
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            for row in &rows {
+                let r = lesson_row(ui, &crate::theme::LIGHT, row);
+                assert!(r.sense.senses_click(), "{:?}", row.skill);
+                assert!(r.enabled(), "{:?}", row.skill);
+                seen += 1;
+            }
+        });
+        out.textures_delta.clear();
+        assert_eq!(seen, SkillId::ALL.len());
+    }
+
+    #[test]
+    fn builds_on_labels_are_short() {
+        assert_eq!(builds_on_label(SkillId::AddFive), "S3 Small friends");
+        assert_eq!(builds_on_label(SkillId::MultiAdd), "S8 Longer numbers");
+    }
 }

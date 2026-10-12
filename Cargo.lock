@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "abax"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "abax-core",
  "android_logger",
@@ -21,7 +21,7 @@ dependencies = [
 
 [[package]]
 name = "abax-core"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",

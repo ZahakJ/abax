@@ -132,6 +132,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 app.confirm_reset = true;
             }
         });
+        reset_one_skill(app, ui);
         if app.confirm_reset {
             ui.label(
                 RichText::new("This deletes lessons progress, mastery and history. Settings stay.")
@@ -170,4 +171,59 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         );
         ui.add_space(20.0);
     });
+}
+
+/// "Reset one skill": undo "I know this already" (or any progress) for a
+/// single skill, with a second tap when real practice would be lost.
+fn reset_one_skill(app: &mut App, ui: &mut Ui) {
+    let pal = app.palette;
+    let id = egui::Id::new("settings-reset-skill");
+    let (mut pick, mut armed): (abax_core::curriculum::SkillId, bool) = ui
+        .data(|d| d.get_temp(id))
+        .unwrap_or((abax_core::curriculum::SkillId::Setting, false));
+    ui.horizontal_wrapped(|ui| {
+        ui.label("Reset one skill");
+        egui::ComboBox::from_id_salt("reset-skill-pick")
+            .selected_text(format!("{} {}", pick.code(), pick.short_name()))
+            .show_ui(ui, |ui| {
+                for s in abax_core::curriculum::SkillId::ALL {
+                    let st = app.save.scheduler.state(s);
+                    let tag = if st.marked_known && st.n == 0 {
+                        " (known)"
+                    } else if st.n > 0 {
+                        " (practised)"
+                    } else {
+                        ""
+                    };
+                    let text = format!("{} {}{}", s.code(), s.short_name(), tag);
+                    if ui.selectable_label(pick == s, text).clicked() {
+                        pick = s;
+                        armed = false;
+                    }
+                }
+            });
+        let st = app.save.scheduler.state(pick);
+        let started = st.n > 0 || st.marked_known;
+        let label = if armed {
+            "Tap again to reset"
+        } else {
+            "Reset this skill"
+        };
+        if ui
+            .add_enabled(
+                started,
+                egui::Button::new(RichText::new(label).color(pal.accent)),
+            )
+            .clicked()
+        {
+            if st.n == 0 || armed {
+                app.save.scheduler.reset_skill(pick);
+                app.mark_dirty();
+                armed = false;
+            } else {
+                armed = true;
+            }
+        }
+    });
+    ui.data_mut(|d| d.insert_temp(id, (pick, armed)));
 }
