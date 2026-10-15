@@ -1,6 +1,5 @@
-//! Shared screen furniture so every screen reads as one instrument: the
-//! header row, cards, section labels, the primary button and the type
-//! scale.
+//! Shared screen furniture: the header row, cards, section labels, the
+//! primary button and the type scale.
 
 use egui::{Align, Color32, Layout, Response, RichText, Sense, Stroke, Ui, Vec2};
 

@@ -140,7 +140,7 @@ impl SkillId {
         }
     }
 
-    /// Elo base difficulty of items for this skill (research §3.3).
+    /// Elo base difficulty of items for this skill.
     pub fn base_difficulty(self) -> f64 {
         use SkillId::*;
         match self {
@@ -160,7 +160,7 @@ impl SkillId {
     }
 
     /// Benchmark seconds per operand (or per item for setting) used by the
-    /// fluency gate (research §3.5).
+    /// fluency gate.
     pub fn benchmark_seconds(self) -> f64 {
         use SkillId::*;
         match self {

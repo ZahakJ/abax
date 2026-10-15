@@ -21,7 +21,7 @@ cargo run --release -p abax
 ```
 
 The release profile uses link-time optimisation, strips symbols and aborts
-on panic; the Linux binary is about 14 MB.
+on panic.
 
 ## The release gate: `./verify`
 
@@ -37,19 +37,14 @@ runs, in order, and stops at the first failure:
 3. `cargo test --workspace`: all unit tests.
 4. `cargo build --release -p abax`: the desktop binary.
 
-CI runs the same script on every push, so a green `./verify` locally means a
-green check on GitHub.
+CI runs the same script on every push.
 
 ## Android, without Gradle
 
 Abax on Android is a pure native app: the manifest says `hasCode="false"`
 and the activity is Android's built-in `NativeActivity`, which loads
-`libabax.so` and calls its `android_main`. There is no Java or Kotlin, so
-there is nothing for Gradle to do. `android/build-apk.sh` builds the APK with
-the SDK's own command-line tools, which is faster and easier to reproduce
-than a Gradle project. The one thing `NativeActivity` does worse than the
-newer `GameActivity` is soft-keyboard input; Abax has its own keypad, so it
-does not need it.
+`libabax.so` and calls its `android_main`. `android/build-apk.sh` builds the
+APK with the SDK's command-line tools.
 
 ### What you need
 
@@ -86,8 +81,8 @@ Add `--debug` for an unoptimised build.
    into compiled resources; `aapt2 link` combines them with
    `android/AndroidManifest.xml` and the platform's `android.jar` into an
    unsigned APK. The version name comes from the workspace `Cargo.toml`
-   (0.2.0) and the version code is major × 10000 + minor × 100 + patch
-   (200).
+   and the version code is major × 10000 + minor × 100 + patch (0.3.0 is
+   300).
 3. **Libraries in.** A few lines of Python add `lib/<abi>/libabax.so` to
    the APK **uncompressed**, so Android can map them straight from the APK
    instead of extracting them.
@@ -100,22 +95,20 @@ Add `--debug` for an unoptimised build.
 
 ### Pinned SDK components
 
-The script uses fixed versions instead of whatever is newest in your SDK.
-(Picking the last directory in sort order once picked a preview platform.)
+The script uses fixed versions, not the newest in your SDK:
 
 | Variable | Default | Selects |
 |----------|---------|---------|
 | `ABAX_BUILD_TOOLS` | `35.0.0` | `$ANDROID_HOME/build-tools/<version>` |
 | `ABAX_PLATFORM` | `35` | `$ANDROID_HOME/platforms/android-<version>/android.jar` |
 
-It stops with a clear message if either is missing.
+It stops if either is missing.
 
 ### Signing
 
-Without `ABAX_KEYSTORE` the script generates a throwaway debug key under
-`target/android/` and signs with it. That is fine for trying a build on your
-own phone, but Android refuses to update an app signed with a different key,
-so a release needs a stable one:
+Without `ABAX_KEYSTORE` the script signs with a throwaway debug key under
+`target/android/`. Android refuses to update an app signed with a different
+key, so a release needs a stable one:
 
 | Variable | Meaning |
 |----------|---------|
@@ -124,8 +117,7 @@ so a release needs a stable one:
 | `ABAX_KEY_ALIAS` | the key's alias |
 
 In the release workflow the keystore arrives base64-encoded in the
-`ABAX_KEYSTORE_B64` secret; the job refuses to run without the three
-secrets rather than publish a debug-signed APK.
+`ABAX_KEYSTORE_B64` secret; the job fails without the three secrets.
 
 ## Releases
 
@@ -148,5 +140,4 @@ docs/build.sh site-out
 python3 -m http.server -d site-out 8000   # landing page at /, manual at /manual/
 ```
 
-On GitHub Pages the site lives under `/abax/`; all links are relative, so it
-works at either root.
+All links are relative, so the site works under any path.

@@ -7,8 +7,8 @@
 //! xorshift generator so every decision is reproducible in tests.
 //!
 //! Times per item are normalised to seconds *per operand* before they enter
-//! the log-time average, because benchmarks and time budgets are expressed
-//! per operand (research §3.4-3.5).
+//! the log-time average; benchmarks and time budgets are per operand.
+//! The model is documented in docs/manual/scheduler.md.
 
 use std::collections::BTreeMap;
 
@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use crate::curriculum::{Level, SkillId, Timing};
 
 // ---------------------------------------------------------------------------
-// Constants (research §3.3-3.6)
+// Constants
 // ---------------------------------------------------------------------------
 
 /// BKT prior P(L0).
@@ -211,7 +211,7 @@ impl SkillState {
     }
 }
 
-/// The mastery gate of research §3.5, as a pure predicate.
+/// The mastery gate, as a pure predicate.
 pub fn mastery_gate(skill: SkillId, st: &SkillState) -> bool {
     let len = skill.ladder().len();
     st.p_known >= MASTERY_P_KNOWN
@@ -474,7 +474,7 @@ impl Scheduler {
         st.last_practised = now;
         st.level = level_idx;
 
-        // Step down / step up (§3.4).
+        // Step down / step up.
         let step_down = level_idx > 0
             && (st.consecutive_errors >= STEP_DOWN_CONSECUTIVE_ERRORS
                 || (st.acc_ewma < STEP_DOWN_ACC && st.items_at_level >= STEP_DOWN_MIN_ITEMS));
@@ -488,7 +488,7 @@ impl Scheduler {
             out.stepped_up = true;
         }
 
-        // Mastery gate (§3.5) and review schedule (§3.6).
+        // Mastery gate and review schedule.
         if st.mastered_at.is_none() {
             if mastery_gate(skill, &st) {
                 st.mastered_at = Some(now);
@@ -547,7 +547,7 @@ impl Scheduler {
             .find(|s| self.prerequisites_met(*s) && !self.is_started(*s))
     }
 
-    /// Cold-start placement (§3.7): each skill probed with at least two items
+    /// Cold-start placement: each skill probed with at least two items
     /// gets `p_known = clamp(fraction, 0.1, 0.9)` and the matching `theta`.
     pub fn placement(&mut self, results: &[(SkillId, u32, u32)]) {
         for &(skill, correct, total) in results {
@@ -572,7 +572,7 @@ impl Scheduler {
             .collect()
     }
 
-    /// Build the three-drill plan of §3.6 from the plannable skills. It
+    /// Build the three-drill plan from the plannable skills. It
     /// always returns a plan: a focus skill with weak prerequisites still
     /// runs, and the warm-up becomes a light review of its weakest
     /// prerequisite when no review is due.
@@ -706,7 +706,7 @@ impl Scheduler {
 }
 
 // ---------------------------------------------------------------------------
-// Tests (research §3.8)
+// Tests
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
@@ -731,10 +731,8 @@ mod tests {
         assert!(close(seq[1], 0.775, 5e-4), "{}", seq[1]);
         assert!(close(seq[2], 0.9455, 5e-4), "{}", seq[2]);
         assert!(close(seq[3], 0.9886, 5e-4), "{}", seq[3]);
-        // The research notes quote 0.907 and 0.978 for the next two steps,
-        // but the stated formula with p_S = 0.1, p_G = 0.2 gives 0.924 and
-        // 0.984 (0.907 would need (1 - L) * 1.0 in the error denominator).
-        // The formula is authoritative; the notes' arithmetic slipped.
+        // With p_S = 0.1 and p_G = 0.2 the next two steps give 0.924 and
+        // 0.984.
         l = bkt_update(l, false);
         assert!(close(l, 0.924, 5e-4), "{l}");
         l = bkt_update(l, true);

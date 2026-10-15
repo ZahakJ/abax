@@ -1,27 +1,25 @@
 # Anzan and flash anzan
 
 *Anzan* (暗算) is mental calculation. Soroban-trained anzan is a particular
-kind: you do not recite digits, you picture a soroban and move its beads in
-your mind with the same moves your fingers make. Studies of expert users
-find that they hold the numbers as a visual image, rod by rod, rather than as
-words. That is why Abax teaches anzan only after the bead skills: the image
-is built from moves you already know by hand.
+kind: you picture a soroban and move its beads in your mind with the same
+moves your fingers make. Expert users hold the numbers as a visual image,
+rod by rod, rather than as words.
 
-Schools build the image in stages: calculate on the real soroban, then with
-it covered, then with finger movements in the air only, then with no
-movement at all. Abax follows the same path in two skills.
+Schools build the image in stages: the real soroban, then covered, then
+finger movements in the air, then no movement. Abax does this in two skills,
+after the bead skills.
 
 ## A1: fading beads
 
 An anzan item is a chain, like a bead drill. The first number is set on the
 soroban and you see it for a moment (0.8 s). Then the beads fade over 2.5 s:
 the body of each bead turns to translucent glass first, the highlights stay
-until late, and in the last quarter everything vanishes. The frame stays, so
-there is still a place to put the picture. You finish the chain on the
+until late, and in the last quarter everything vanishes. The frame stays.
+You finish the chain on the
 soroban you now only imagine, and type the total.
 
-Moving your index finger and thumb in the air as if working real beads is
-fine, and Kojima recommends it.
+Kojima recommends moving the index finger and thumb in the air as if
+working real beads.
 
 <picture>
   <source srcset="../screenshots/glass-dark.png" media="(prefers-color-scheme: dark)">
@@ -77,17 +75,13 @@ The display time is per number.
 | 7 | 3 | 10 | 0.8 s | 8.0 s |
 | 8 | 3 | 15 | 0.5 s | 7.5 s |
 
-Every step is faster, longer or wider than the one before it. For
-comparison, the Japan Flash Anzan Association's exam ladder starts at three
-one-digit numbers in 5 s (1.67 s each) and its tenth dan is fifteen 3-digit
-numbers in 3 s (0.2 s each). Abax's top step is a long way from that, and
-the free mode below goes as fast as 0.2 s.
+Every step is faster, longer or wider than the one before it. The Japan
+Flash Anzan Association's exam ladder starts at three one-digit numbers in
+5 s (1.67 s each); its tenth dan is fifteen 3-digit numbers in 3 s (0.2 s
+each). Free flash goes down to 0.2 s.
 
-The same step-up and step-down rules as every other skill move you along the
-ladder; a message tells you when you moved up the speed ladder or eased back
-a step. When you start missing, slowing down a step and building back up is
-the right thing to do: speed comes from a sharper image, not from thinking
-faster.
+The usual step-up and step-down rules move you along the ladder; a message
+says when you moved up or eased back a step.
 
 ### Free flash
 

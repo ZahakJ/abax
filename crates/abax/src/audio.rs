@@ -1,5 +1,5 @@
 //! A synthesised bead click. Desktop only (cpal); on Android the module is a
-//! silent stub in this version.
+//! silent stub.
 
 #[cfg(not(target_os = "android"))]
 mod desktop {

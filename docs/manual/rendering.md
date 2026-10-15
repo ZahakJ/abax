@@ -1,47 +1,16 @@
 # Rendering
 
-## What is drawn, and why on the GPU
-
-Everything in Abax except the soroban itself is ordinary [egui](https://github.com/emilk/egui):
+Everything except the soroban is ordinary [egui](https://github.com/emilk/egui):
 text, buttons, the keypad, charts, hint arrows and the digits under the rods.
-The soroban is different. It is the one thing you look at all the time, and
-it should read as a solid instrument on a desk.
+The soroban is one `egui_wgpu` paint callback: **one pipeline, one instanced
+draw, shaded per pixel in WGSL** (`crates/abax/src/render/mod.rs` and
+`soroban.wgsl`). eframe already renders through wgpu on every target; naga
+translates the WGSL to Vulkan, Metal, DirectX 12 and OpenGL ES.
 
-A bead reads as solid when its shading changes smoothly over its surface:
-lit on one side, darker on the other, a small bright highlight, darker at
-the edge, darker still where it touches its neighbour, with a soft shadow
-on the board. Version 0.1 drew each bead as a stack of flat egui polygons
-with vertex colours. That gives bands, not surfaces, and costs about a dozen
-shapes per bead, or 135 beads × 12 at 27 rods.
-
-<figure>
-<img src="../screenshots/v0.1-practice-light.png" alt="The version 0.1 soroban: flat, banded beads drawn with polygons.">
-<figcaption>Version 0.1: polygons and vertex colours.</figcaption>
-</figure>
-
-<figure>
 <picture>
   <source srcset="../screenshots/practice-dark.png" media="(prefers-color-scheme: dark)">
-  <img src="../screenshots/practice-light.png" alt="The version 0.2 soroban: lit, rounded beads on bamboo rods in a grained walnut frame.">
+  <img src="../screenshots/practice-light.png" alt="The soroban: lit, rounded beads on bamboo rods in a grained walnut frame.">
 </picture>
-<figcaption>Version 0.2: one instanced draw, shaded per pixel.</figcaption>
-</figure>
-
-Since 0.2.0 the soroban is one `egui_wgpu` paint callback: **one pipeline,
-one instanced draw, shaded per pixel in WGSL**
-(`crates/abax/src/render/mod.rs` and `soroban.wgsl`). The reasons:
-
-- **Per-pixel lighting** is what makes the solid look solid; a fragment
-  shader computes it directly.
-- **Wood grain, lacquer sheen, bevels and a vignette** are a few lines of
-  procedural noise and distance math. As textures they would need an atlas
-  per theme and per screen density.
-- **It is cheap.** One draw call per soroban with a few hundred instances,
-  and the per-pixel work is short distance-field math.
-- **No new dependency.** eframe already renders through wgpu on every
-  target, desktop and Android, and re-exports it. WGSL is translated by
-  naga to Vulkan, Metal, DirectX 12 and OpenGL ES, so one shader covers all
-  four platforms.
 
 ## How it works
 
@@ -85,71 +54,40 @@ exactly like egui's own meshes.
 | Ebony | near-black ebony, fine grain | brass | bone |
 | Maple | pale maple, fine grain | steel | slate |
 
-Each is tuned separately for the light and the dark theme. Vermilion stays
-the single accent in all of them.
+Each has a light and a dark variant.
 
 ### Fallback
 
-If eframe starts without a wgpu render state, Abax logs a warning and draws
-the soroban with the previous egui painter, so the board is never empty.
+Without a wgpu render state, Abax logs a warning and draws the soroban with
+plain egui shapes.
 
-## Performance
-
-Measured on Linux (Wayland, Hyprland) with an NVIDIA RTX 4070 SUPER on an
-85 Hz display, release build, 1200 × 800 window, 27 rods with every bead
-animating every frame:
+## Benchmarks
 
 ```sh
-cargo build --release -p abax
 ABAX_BENCH=frames=400 ABAX_WINDOW=1200x800 ./target/release/abax
 ```
 
-| Per frame (average / 95th percentile) | v0.1.0, egui polygons | v0.2.0, wgpu callback |
-|---------------------------------------|-----------------------|-----------------------|
-| UI pass | 0.07 / 0.09 ms | 0.04 / 0.06 ms |
-| CPU: UI, tessellation and paint submission | 0.38 / 0.54 ms | 0.18 / 0.23 ms |
-| Frame period | 12.5 / 11.8 ms | 12.5 / 11.8 ms |
-
-The CPU cost halved because the soroban no longer goes through egui's
-tessellator: it is a few hundred 96-byte instances instead of thousands of
-polygon vertices.
-
-How to read this:
-
-- **The benchmark measures CPU time only**, not GPU time. The shading work
-  moved to the GPU, and that cost is not in these numbers. On this machine
-  it is too small to affect the frame period.
-- **The frame period is the display's**, in both versions. Benchmark runs
-  present without vsync (`AutoNoVsync`), but the Wayland compositor still
-  paces redraws at the 85 Hz refresh (11.8 ms). The average is above the
-  95th percentile because the first few frames, while the window is being
-  set up, are long.
-- **Start-up.** `ABAX_BENCH=start` prints the time from the top of
-  `App::new` to the first frame. In v0.2.0 that is 21 to 28 ms, and it
-  includes loading the profile, opening audio and creating the pipeline
-  (2.5 ms of it). The v0.1.0 figure of 2.7 ms excluded those steps, so the
-  two numbers are not comparable.
-- The stripped Linux x86_64 binary is 13.9 MB.
-
-`ABAX_BENCH=frames=N` prints one line after N frames:
+`ABAX_BENCH=frames=N` prints one line after N frames, leaving out the first
+10:
 
 ```text
 ABAX_BENCH frames=390 rods=27 ui-pass avg/p95=… ms cpu-frame avg/p95=… ms frame period avg/p95=… ms
 ```
 
-The first 10 frames are left out of the statistics.
+`ABAX_BENCH=start` prints the time from the top of `App::new` to the first
+frame. Both measure CPU time only.
 
 ## Screenshot and capture modes
 
-All captures on the website and in this manual come from the app itself,
-driven by environment variables (desktop only).
+Captures come from the app itself, driven by environment variables
+(desktop only).
 
 | Variable | Effect |
 |----------|--------|
 | `ABAX_WINDOW=WxH` | Window size in points, for example `1000x720` or `420x820`. |
 | `ABAX_SHOT=<screen>:<file.png>` | Open `<screen>`, wait 40 frames, save a PNG, exit. The window is fixed-size and undecorated, so tiling window managers float it. |
 | `ABAX_SHOT=<screen>:<dir>/` | Sequence mode (the path ends in `/`): record 48 consecutive frames as `frame-000.png` … `frame-047.png` while the practice soroban runs a scripted set of moves. |
-| `ABAX_DEMO_DATA=1` | Fill the history and scheduler with a plausible two weeks of practice, so the stats and home screens have something to show. |
+| `ABAX_DEMO_DATA=1` | Fill the history and scheduler with two weeks of sample practice. |
 | `ABAX_DATA_DIR=<dir>` | Use the profile in `<dir>`; this is how a capture picks its theme and finish. |
 | `ABAX_BENCH=start` or `frames=N` | The benchmarks above. |
 
@@ -159,8 +97,8 @@ Screens for `ABAX_SHOT`: `home`, `practice` (4071583 on the beads), `glass`
 (an S5 drill), `stats`, `lessons`, `flash` (the flash anzan setup),
 `flash-run` (a number mid-flash), `settings`. Anything else opens home.
 
-`ABAX_DEMO_DATA` changes the profile it runs with, so always pair it with a
-throwaway `ABAX_DATA_DIR`. A capture in the dark theme with the ebony finish:
+`ABAX_DEMO_DATA` changes the profile it runs with; pair it with a throwaway
+`ABAX_DATA_DIR`. A capture in the dark theme with the ebony finish:
 
 ```sh
 mkdir -p /tmp/abax-shot
@@ -170,9 +108,8 @@ ABAX_DATA_DIR=/tmp/abax-shot ABAX_DEMO_DATA=1 ABAX_WINDOW=1000x720 \
   ABAX_SHOT=practice:practice-ebony-dark.png ./target/release/abax
 ```
 
-The landing page's hero loop is a sequence: the soroban moves from empty to
-4071583, then 2958, then 7310246. The 48 frames, cropped to the soroban, play
-at 20 frames per second. The hero loop on the landing page was made with:
+The landing page's hero loop is a sequence (empty, 4071583, 2958, 7310246),
+48 frames cropped to the soroban at 20 frames per second:
 
 ```sh
 mkdir -p shot/profile shot/frames

@@ -1,8 +1,6 @@
 # The save file
 
-Everything Abax knows about you is one JSON file, `profile.json`. There is
-no account and no server; the file never leaves your device unless you copy
-it.
+Settings, scheduler state and history are one JSON file, `profile.json`.
 
 ## Where it is
 
@@ -25,22 +23,18 @@ place there while Abax is closed.
 
 ## How it is written
 
-A save must never leave a half-written file behind, even if the power goes
-out mid-write. Abax therefore writes the whole document to
-`profile.json.tmp`, flushes it to disk (`fsync`), and then renames it over
-`profile.json`. A rename within one directory is atomic: the file is either
-the old version or the new one, never a mix.
+Abax writes the whole document to `profile.json.tmp`, flushes it to disk
+(`fsync`), and renames it over `profile.json`. The rename is atomic: the
+file is either the old version or the new one.
 
 If the file cannot be read (damaged, or written by a newer Abax), Abax
 copies it to `profile.json.bak`, starts a fresh profile and logs a warning.
-Your old data is still there to recover.
 
 ## Versioning
 
 The document carries a `version` field. This build writes version 1 and
-reads versions up to 1; a missing version, or a newer one, is rejected
-rather than misread. Two rules let the format grow without breaking old
-files:
+reads versions up to 1; a missing or newer version is rejected. Two rules
+let the format grow:
 
 - **Unknown fields are ignored**, so an older Abax can open a file a newer
   one wrote, as long as the version number did not change.
@@ -57,10 +51,8 @@ When a change needs real conversion, the version number goes up and
 
 ## The schema, annotated
 
-Abax writes the file compactly on one line. Here it is formatted, with
-comments (JSON itself does not allow comments), for a profile created a
-minute before one item was answered. Only one of the fifteen skill entries
-is shown.
+The file is written on one line. Formatted and commented, after one
+answered item, with one of the fifteen skill entries:
 
 ```jsonc
 {

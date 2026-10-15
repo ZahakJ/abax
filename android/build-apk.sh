@@ -25,8 +25,7 @@ done
 
 : "${ANDROID_HOME:?set ANDROID_HOME}"
 : "${ANDROID_NDK_HOME:?set ANDROID_NDK_HOME}"
-# Pinned SDK components (the 0.1.0 release picked whatever sorted last on the
-# runner, which was a preview API 37 platform). Override with the env vars.
+# Pinned SDK components; override with the env vars.
 bt_version="${ABAX_BUILD_TOOLS:-35.0.0}"
 platform_version="${ABAX_PLATFORM:-35}"
 bt="$ANDROID_HOME/build-tools/$bt_version"

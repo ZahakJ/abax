@@ -30,14 +30,13 @@ crates/abax/          the eframe app: a binary on the desktop, a cdylib on Andro
 android/              manifest, resources, build-apk.sh
 packaging/            .desktop file, icon, install.sh, Info.plist, make-app.sh
 docs/                 this manual, the landing page, the screenshots
-research/             the cited notes the design is built on
+research/             sources and the bead-move fixture tables
 verify                the release gate
 ```
 
-`abax-core` is where the rules live, and it is the part with most of the
-tests. Its randomness comes from the caller: generators take a `dice`
-closure, the scheduler a small seeded xorshift generator, so every test is
-deterministic.
+`abax-core` holds the rules and most of the tests. Randomness comes from
+the caller: generators take a `dice` closure, the scheduler a seeded
+xorshift generator.
 
 ## Data flow
 
@@ -90,7 +89,7 @@ the save file.
 
 ## Tests
 
-There are 115: 92 in `abax-core` and 23 in the app. They include:
+The tests include:
 
 - the complete 10 × 9 addition and 10 × 9 subtraction tables from the
   research notes: for every digit on the rod and every digit added or
@@ -99,8 +98,7 @@ There are 115: 92 in `abax-core` and 23 in the app. They include:
   division with revised quotient digits;
 - generators: every item for a skill uses that skill's rule and nothing
   beyond it;
-- the scheduler checklist from `research/trainer-design.md` section 3.8:
-  the BKT sequence, the EWMA sequences, U(n), Elo monotonicity, the
+- the scheduler: the BKT sequence, the EWMA sequences, U(n), Elo monotonicity, the
   mastery gate rejecting four lucky answers and slow answers, forgetting
   and the session planner choosing only skills on the suggested path or
   already met, adding a light review when a prerequisite is weak, and never
@@ -116,8 +114,7 @@ Bead-move changes must keep the full tables green.
 
 - Clippy warnings are errors; `cargo fmt` decides formatting.
 - Western digits (0 to 9) in every string.
-- The identity in `DESIGN.md`: calm, physical, no gamification, one
-  vermilion accent.
+- Palette, motion and interaction: [`docs/internals.md`](https://github.com/ZahakJ/abax/blob/main/docs/internals.md).
 - Captures live only in `docs/screenshots/`.
 
 See [`CONTRIBUTING.md`](https://github.com/ZahakJ/abax/blob/main/CONTRIBUTING.md)

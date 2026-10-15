@@ -1124,8 +1124,8 @@ impl SorobanView {
 }
 
 /// The "move this bead" arrow: a small rounded triangle in the gap on the
-/// side the bead travels toward, in the accent colour (research §4.5: a
-/// highlight is never colour-only).
+/// side the bead travels toward, in the accent colour, so a
+/// highlight is never colour-only.
 fn hint_arrow(
     painter: &egui::Painter,
     pal: &Palette,

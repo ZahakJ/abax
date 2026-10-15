@@ -1,6 +1,6 @@
 //! Drill item generators. Every item carries exactly one focus skill and is
 //! generated so that the bead moves it needs exercise that skill's rule and
-//! nothing the learner has not met yet (research/trainer-design.md §3.1).
+//! nothing the learner has not met yet.
 //!
 //! Randomness comes from a caller-supplied `dice` closure returning a value
 //! below its argument, so tests are deterministic and the core has no rand

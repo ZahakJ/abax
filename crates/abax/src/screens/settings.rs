@@ -99,10 +99,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             });
         }
         if !app.audio.available() {
-            ui.label(
-                RichText::new("No audio output is available on this device in this version.")
-                    .color(pal.ink_soft),
-            );
+            ui.label(RichText::new("No audio output on this device.").color(pal.ink_soft));
         }
         if changed {
             app.apply_settings();
@@ -155,12 +152,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 
         crate::ui::section(ui, &pal, "About");
         ui.label(format!("Abax {}", env!("CARGO_PKG_VERSION")));
-        ui.label(
-            RichText::new(
-                "A soroban trainer. Rust, egui and wgpu. Offline; nothing leaves this device.",
-            )
-            .color(pal.ink_soft),
-        );
+        ui.label(RichText::new("A soroban trainer. Rust, egui and wgpu.").color(pal.ink_soft));
         let (avg, p95) = app.frame_stats();
         ui.label(
             RichText::new(format!(

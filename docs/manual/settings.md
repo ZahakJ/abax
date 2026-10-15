@@ -16,7 +16,7 @@ saved with your profile; the name in brackets is the field in the
 | Rods (`rod_count`) | 9, 13, 17, 21, 23, 27 | 13 (9 on a new Android profile) | Rods on the free-practice soroban and the upper limit for drills. Drills use fewer when the problem needs fewer, so beads stay large on phones. |
 | Beads move by (`input_mode`) | tap, drag, both | both | Tap moves a bead group in one go; drag lets beads follow the finger and snap on release. |
 | Show the number under the rods in free practice (`show_numbers`) | on, off | on | The digit under each rod. Drills decide for themselves: a "read" item hides them, anzan hides them. |
-| Show the on-screen keypad (`show_keypad`) | on, off | on | Off is comfortable with a keyboard. Items that need a typed answer always show it. |
+| Show the on-screen keypad (`show_keypad`) | on, off | on | Items that need a typed answer always show it. |
 | Left-handed layout (`left_handed`) | on, off | off | Puts the keypad on the left. |
 | Hint after (`hint_delay_seconds`) | 1.5 to 10 s | 4 s | How long Abax waits after your last move before showing the next one in a drill. Guided practice in lessons always uses 1.5 s. |
 
@@ -42,8 +42,8 @@ saved with your profile; the name in brackets is the field in the
 | Bead click (`sound`) | on, off | off | A short synthesised click per bead group: a 2 ms noise burst into a decaying 1.8 kHz resonance, a little lower for the heaven bead. |
 | Volume (`volume`) | 0 to 1 | 0.6 | Loudness of the click. |
 
-Sound is not available on Android in this version; the settings screen says
-so when there is no audio output.
+There is no sound on Android; the settings screen says so when there is no
+audio output.
 
 ## Flash anzan
 
@@ -63,4 +63,4 @@ there. See [Anzan and flash anzan](anzan.md#free-flash).
 ## About
 
 The Abax version, and the average and 95th-percentile frame time over the
-last 120 frames, which is useful in a bug report about performance.
+last 120 frames.

@@ -1,15 +1,7 @@
 # The adaptive scheduler
 
-## The question
-
-Every time you open Abax, it has to answer one question: **what should this
-person practise now?** Too easy and the session is wasted; too hard and it
-is discouraging; the same skill every day and the others fade. A teacher
-answers it by watching you. Abax has only your answers and how long each
-took. This chapter builds the scheduler up from that, one piece at a time,
-with the real numbers from `crates/abax-core/src/scheduler.rs`.
-
-The pieces, and the question each one answers:
+The scheduler decides what to practise next from your answers and their
+times. The numbers below are those in `crates/abax-core/src/scheduler.rs`.
 
 | Piece | Question |
 |-------|----------|
@@ -24,11 +16,9 @@ The pieces, and the question each one answers:
 
 ## Do you know the rule? Bayesian Knowledge Tracing
 
-A right answer is evidence that you know the rule, but not proof: you might
-have guessed. A wrong answer is evidence that you do not, but you might
-have slipped. Bayesian Knowledge Tracing (Corbett and Anderson, 1995) keeps
-one number per skill, *L*, the probability that you know it, and updates it
-with exactly these two possibilities in mind. Abax uses:
+Bayesian Knowledge Tracing (Corbett and Anderson, 1995) keeps one number
+per skill, *L*, the probability that you know it, allowing for guesses and
+slips:
 
 | Parameter | Value | Meaning |
 |-----------|-------|---------|
@@ -36,9 +26,6 @@ with exactly these two possibilities in mind. Abax uses:
 | P(G) | 0.20 | chance of a right answer without knowing the rule (guess) |
 | P(S) | 0.10 | chance of a wrong answer although you know it (slip) |
 | P(T) | 0.10 | chance of learning it from one more item |
-
-The guess rate is low because you build a whole number, not pick one of
-four; the slip rate covers mis-taps.
 
 After a **right** answer, Bayes' rule gives
 
@@ -65,30 +52,25 @@ Correct again from 0.400: 0.36 / (0.36 + 0.60 × 0.20) = 0.75, then
 **0.9886**.
 
 Now a wrong answer from 0.9886: 0.09886 / (0.09886 + 0.0114 × 0.80) =
-0.9156, plus the learning step: **0.924**. One slip after four right answers
-costs little, because a slip is plausible for someone who knows the rule.
-The same slip early, from 0.9455 after three right answers, gives
-0.09455 / (0.09455 + 0.0545 × 0.80) = 0.684, then **0.716**: there was less
-evidence to protect the estimate.
+0.9156, plus the learning step: **0.924**. The same slip after three right
+answers, from 0.9455, gives 0.09455 / (0.09455 + 0.0545 × 0.80) = 0.684,
+then **0.716**.
 
 The [curriculum graph](curriculum.md#the-graph) uses *L* directly: a
 skill's prerequisites count as met when every one has *L* ≥ 0.80. Three
 right answers in a row on S3 (0.9455) are already enough to make S5 the
-suggested next step. Nothing is ever locked, though: this only steers
-suggestions.
+suggested next step.
 
 **I know this already** sets *L* to exactly 0.80 (and θ to the matching
 ln(0.8 / 0.2) = 1.386) without adding any answers. One right answer from
 there: 0.72 / (0.72 + 0.20 × 0.20) = 0.947, then **0.953**. One wrong
-answer: 0.08 / (0.08 + 0.20 × 0.80) = 0.333, then **0.400**. A skill you
-only claimed to know confirms itself in one answer, and one slip drops it
-back below the threshold, so the planner treats it as new again.
+answer: 0.08 / (0.08 + 0.20 × 0.80) = 0.333, then **0.400**, back below the
+threshold.
 
 ## How are you doing lately? The accuracy average
 
-*L* rises quickly and is slow to fall, which is right for "do you know it"
-but wrong for "is this going well today". For that Abax keeps an
-exponentially weighted moving average (EWMA) of accuracy:
+An exponentially weighted moving average (EWMA) of accuracy tracks recent
+performance:
 
 acc′ = acc + 0.2 × (correct − acc), with correct = 1 or 0, starting at 0.5.
 
@@ -99,24 +81,20 @@ right answers in a row from 0.5 reach 0.946.
 
 ## How fast? The time average
 
-Speed matters on the soroban: a move you have to think about is not yet
-yours. Abax keeps an EWMA of the logarithm of your **seconds per operand**,
-on right answers only (a wrong answer is not evidence of fluency):
+An EWMA of the logarithm of **seconds per operand**, on right answers
+only:
 
 log_t′ = log_t + 0.3 × (ln(seconds per operand) − log_t).
 
-Logarithms make one very slow answer (you looked away) count as a factor,
-not as a huge number of seconds. Your "typical time" is exp(log_t). It
-starts at three times the skill's benchmark, which assumes you are slow until
-you show otherwise. Benchmarks, in seconds per operand: S0 3.0; S1 and S2
+Your "typical time" is exp(log_t). It starts at three times the skill's
+benchmark. Benchmarks, in seconds per operand: S0 3.0; S1 and S2
 2.5; S3 and S4 3.0; S5, S6 and S7 3.5; S8 and S9 5.0; S10 12; S11 15; A1 2.0;
 A2 and A3 1.0.
 
 ## Is this step too hard? Elo ability
 
-*L* says whether you know the rule, not whether eight operands with a timer
-are within reach. For that Abax rates you and the item on one scale, as
-chess ratings do. Each item has a difficulty *d* computed from its step:
+You and the item are rated on one scale, as in chess. Each item has a
+difficulty *d* computed from its step:
 
 *d* = base(skill) + 0.40 (digits − 1) + 0.25 (operands − 2) + 0.50 [timed] + 0.30 [flash]
 
@@ -133,8 +111,7 @@ and after each answer
 
 where *n* is how many items of this skill you have answered. A surprise
 moves θ a lot, an expected result very little, and U shrinks as evidence
-accumulates: U(0) = 1, U(10) = 0.625, U(100) = 0.14. Early estimates are
-quick and rough; later ones are stable.
+accumulates: U(0) = 1, U(10) = 0.625, U(100) = 0.14.
 
 ## Harder or easier? The ladder rules
 
@@ -152,8 +129,7 @@ at least 6 items on the step.
 - the Elo prediction for this step, P, is at least 0.85;
 - on a timed step: typical time ≤ 0.8 × the time budget that was fixed when
   you entered the step;
-- when the next step is the first timed one: accuracy ≥ 0.90. A timer is
-  never introduced to someone who is not yet accurate.
+- when the next step is the first timed one: accuracy ≥ 0.90.
 
 ## A worked session
 
@@ -192,14 +168,12 @@ Why no step up before item 11? At item 9 the learner already had 9 items on
 the step, *L* near 1 and accuracy 0.867, but the Elo prediction was
 1 / (1 + e^−1.520) = 0.82, under 0.85. At item 10 it was 0.837. At item 11,
 θ = 1.738 gives 0.850, accuracy is 0.915, and the next step is still
-untimed: up they go to three operands. The wrong answer at item 4 cost them
-about three items, which is the point: one error is not a catastrophe, but
-it is not ignored either.
+untimed: up to three operands. The wrong answer at item 4 cost about three
+items.
 
 Readiness follows the live estimate. S3's *L* passed 0.80 at item 3, which
 made S5 a suggested next step (and S4, once S2 is there too); the error at
-item 4 took that back until item 5. The learner could have opened S5 at
-any point anyway.
+item 4 took that back until item 5.
 
 ## Are you done? The mastery gate
 
@@ -212,17 +186,13 @@ A skill is marked **mastered** when all five hold:
   most skills is the first timed one;
 - typical time ≤ 1.5 × the skill's benchmark.
 
-Each condition closes a loophole. Four lucky answers reach *L* = 0.989 but
-fail the count. A long history of eventual success fails the accuracy
-average if the last ten were shaky. Easy steps do not count as mastery of
-the hard ones. And knowing the rule while still counting beads one by one
-fails the speed condition. The learner above, after twelve items, is still
-on step 2 of 6: S3 counts as met for what comes next, but is not mastered.
+Four lucky answers reach *L* = 0.989 but fail the count. The learner
+above, after twelve items, is on step 2 of 6: S3 counts as met, but is not
+mastered.
 
 ## Have you started to lose it? Forgetting and review
 
-Unused skills fade. Abax models this by decaying *L* with the days since you
-last practised the skill:
+*L* decays with the days since the skill was last practised:
 
 *L*_eff = *L* × e^(−days / τ), with τ = 14 × review interval (in days).
 
@@ -234,34 +204,30 @@ days, τ = 140 and *L*_eff = 0.869: not due by decay, but due because 14 days
 exceeds 10.
 
 When you answer a due review with accuracy ≥ 0.90, the interval grows by a
-factor of 1.6, up to 60 days, so well-kept skills come back less and less
-often. If accuracy on a mastered skill drops below 0.70, the mastered mark
+factor of 1.6, up to 60 days. If accuracy on a mastered skill drops below 0.70, the mastered mark
 is removed and the interval resets to 1 day.
 
 ## What today? The session planner
 
 A planned session is three short drills. They pick from the skills on the
 suggested path (prerequisites met) plus every skill you have already met,
-practised or marked as known, in whatever order you took them. The planner
-always returns a plan; a gap in the prerequisites never stops it.
+practised or marked as known. A gap in the prerequisites never stops it.
 
 1. **Warm-up, 7 items.** The due review that has waited longest, at its
    current step. If nothing is due and the focus skill below has a
    prerequisite under 0.80 (you went ahead of the suggested path), a
    **light review** of that prerequisite instead: 5 untimed items at its
    current step, the weakest prerequisite first. Otherwise the most recently
-   mastered skill at its top step. It is meant to be easy (target success
-   about 90 %, 85 % for the light review): start with something you can do.
+   mastered skill at its top step. Target success about 90 % (85 % for the
+   light review).
 2. **Focus, 12 items.** Among those skills that are not yet mastered, sort
    by *L*_eff and take the weakest, with probability 0.7, or the second
-   weakest, with probability 0.3, so that one stubborn skill does not fill
-   every session. About 30 % of its items come from other skills you have
+   weakest, with probability 0.3. About 30 % of its items come from other skills you have
    already met, each at its own step. Target success about 80 %. The focus
    runs whatever the state of its prerequisites.
 3. **Cool-down, 6 items.** Untimed items from the skills you know well
-   (*L*_eff ≥ 0.80), strongest first, mixed together, so the session ends
-   on things that go right. A skill you marked as known starts here at
-   exactly 0.80, which is how "I know this already" gets checked.
+   (*L*_eff ≥ 0.80), strongest first, mixed together. A skill marked as
+   known starts here at exactly 0.80.
 
 An example with a gap. A new learner opens S10 straight away and answers
 six multiplication items, half of them right, and has also done some S0.
@@ -273,15 +239,12 @@ S8 items at step 1, and then the twelve S10 items run as normal.
 On a brand-new profile the only skill on the path is S0, so the plan is a
 single 12-item S0 drill. And before any of this, the home screen's
 **Continue** sends you to the suggested next lesson, the first skill on the
-path you have neither tried nor marked as known: new ideas are taught
-before they are drilled. Every other lesson is one tap away in Lessons.
+path you have neither tried nor marked as known.
 
-## Momentum, not streaks
+## Momentum
 
 The stats screen shows the last 14 days: items, minutes, days active, and a
-"momentum" figure that halves every three days without practice instead of
-dropping to zero when you miss a day. Nothing in Abax counts or shames a
-broken streak.
+"momentum" figure that halves every three days without practice.
 
 ## Sources
 
@@ -294,8 +257,3 @@ broken streak.
 - Klinkenberg, Straatemeier and van der Maas (2011), Math Garden: item
   difficulty and ability on one logistic scale.
 - Rohrer and Taylor (2007), on interleaved practice.
-
-The full derivation, alternatives considered and the unit-test checklist
-are in
-[`research/trainer-design.md`](https://github.com/ZahakJ/abax/blob/main/research/trainer-design.md),
-section 3.

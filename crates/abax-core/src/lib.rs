@@ -1,8 +1,7 @@
 //! Abax core: the soroban model, the bead-move engine that knows every
 //! complement rule, the multiplication and division procedures, the
 //! curriculum, the drill generators and the adaptive scheduler.
-//!
-//! This crate has no UI dependencies and is fully unit tested.
+//! No UI dependencies.
 
 pub mod arith;
 pub mod curriculum;

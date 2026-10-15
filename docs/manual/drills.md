@@ -39,15 +39,14 @@ multiplication and division the step-by-step procedure takes that role.
 - **A planned session** (the Continue button on the home screen): warm-up,
   focus and cool-down drills chosen by the [scheduler](scheduler.md). About
   30 % of the focus drill's items are drawn from other skills you have
-  already practised, each at its own current step. Mixing old and new like
-  this makes practice feel harder and makes learning stick.
+  already practised, each at its own current step.
 - **Drills** on the home screen: choose a skill (grouped as set and read,
   add and subtract, longer numbers, multiply, divide, anzan), a step on its
   ladder (it starts at your current step; you can move it either way) and
   the number of items. Every skill can be chosen, whatever you have learned
   so far; it starts on the furthest skill you have met.
 - **Sprint**: choose a skill and a step; you get as many items as you can
-  answer in 60 seconds. The clock ends the sprint, not a mistake.
+  answer in 60 seconds. Mistakes do not end it.
 - **Lessons** end in three guided items (not recorded), then a 10-item drill.
 
 ## Difficulty and time pressure
@@ -60,6 +59,5 @@ not a countdown on the screen; the scheduler uses it to decide when you are
 fluent enough to go further: on a timed step you step up only when your
 typical time is at most 80 % of the budget.
 
-Every answer, right or wrong, with its time, goes into your history and
-into the scheduler. Guided lesson practice is the exception: it is for
-learning the move and does not count.
+Every answer and its time goes into the history and the scheduler, except
+in guided lesson practice.
