@@ -1,9 +1,8 @@
-# Soroban mechanics, technique, and curriculum — research notes for Abax
+# Soroban mechanics, technique and curriculum
 
-Compiled 2026-10 from primary and semi-primary sources (Kojima 1954, Japanese
-federation exam pages, Wikipedia/Wikibooks, sorobanexam.org, research papers).
-Where sources disagree this is stated. Section 3 contains the exhaustive
-bead-move tables intended to become unit-test fixtures.
+Sources: Kojima 1954, Japanese federation exam pages, Wikipedia/Wikibooks,
+sorobanexam.org, research papers. Disagreements are noted. The bead-move
+tables in section 3 are the move engine's test fixtures.
 
 Notation used throughout:
 
@@ -49,7 +48,7 @@ multiplicand + multiplier = 11 digits, わり算 divisor + quotient = 10 digits 
 A product of 11 digits plus a 2-rod gap plus the multiplier, or a 10-digit dividend
 plus a 4-rod gap plus the divisor, fits on 23 rods, which is why the 23-rod soroban is
 the de-facto student/exam instrument; no federation page fetched specifies a rod count
-as a rule. **Recommendation for Abax: default 23, offer 13/17/21/27.**
+as a rule.
 
 ### 1.3 Beads: shape, material, size
 
@@ -715,7 +714,7 @@ Suggested Abax ladder (derived from the official table; beginner → advanced):
 | Du et al. 2013 (fMRI, Chinese children); Wang et al. 2015 (task switching); Dong et al. 2016 (n-back) | trained children vs controls | report neural modulation and some executive gains; Lo & Andrews note these transfer claims are contested. |
 | Ku et al. 2012, *PLOS ONE* | EEG + fMRI case | sequential neural processes in abacus mental addition; cited by Wikipedia for heightened right-hemisphere activity in visualising users. |
 
-Summary for Abax's claims copy: evidence is **strong** that abacus training produces
+Summary: evidence is **strong** that abacus training produces
 fast, accurate arithmetic and a visuo-spatial (column-wise, 3–4 column) representation
 of number; evidence that it improves general working memory, IQ or "right-brain
 activation" is **weak or negative** in the best-controlled trials. No peer-reviewed
@@ -735,9 +734,8 @@ study specifically of flash anzan (as opposed to mental abacus) was found.
 - Fastest flash anzan: 1.60 s (2015, Christmas Cup) vs Guinness 1.61 s (2024) — different
   sanctioning bodies.
 - Barner et al. 2016 sample: 204 (abstract) vs 183 (BPS digest).
-- Heffelfinger's "Abacus: Mystery of the Bead" (webhome.idirect.com/~totton/abacus/) was
-  unreachable (expired TLS certificate); archived copies of its pages are listed in the
-  Wikibooks bibliography below.
+- Heffelfinger's "Abacus: Mystery of the Bead" (webhome.idirect.com/~totton/abacus/):
+  archived copies are listed in the Wikibooks bibliography below.
 
 ---
 

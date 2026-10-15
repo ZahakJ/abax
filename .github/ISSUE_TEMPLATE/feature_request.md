@@ -10,4 +10,4 @@ assignees: ""
 
 **The proposal**
 
-**How it fits the design** (see DESIGN.md: calm, physical, no gamification)
+**How it fits the design** (see docs/internals.md)

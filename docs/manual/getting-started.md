@@ -2,10 +2,9 @@
 
 ## Install
 
-Every release on GitHub carries the same set of files. The commands below
-use v0.3.0; the [releases page](https://github.com/ZahakJ/abax/releases/latest)
-always has the newest version, and `SHA256SUMS.txt` next to the downloads
-lets you check what you fetched (`sha256sum -c SHA256SUMS.txt --ignore-missing`).
+The commands below use v0.3.0; the newest version is on the
+[releases page](https://github.com/ZahakJ/abax/releases/latest). Check a
+download with `sha256sum -c SHA256SUMS.txt --ignore-missing`.
 
 | Platform | File |
 |----------|------|
@@ -13,7 +12,7 @@ lets you check what you fetched (`sha256sum -c SHA256SUMS.txt --ignore-missing`)
 | Windows x86_64 | `abax-v0.3.0-windows-x86_64.zip` |
 | macOS, Apple silicon | `abax-v0.3.0-macos-aarch64.dmg` |
 | macOS, Intel | `abax-v0.3.0-macos-x86_64.dmg` |
-| Android, 64-bit ARM (almost every current phone) | `abax-v0.3.0-android-arm64-v8a.apk` |
+| Android, 64-bit ARM | `abax-v0.3.0-android-arm64-v8a.apk` |
 | Android, universal (adds 32-bit ARM and x86_64) | `abax-v0.3.0-android-universal.apk` |
 
 ### Linux
@@ -25,10 +24,8 @@ curl -L https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-linu
 
 `install.sh` needs no root. It copies the binary to `~/.local/bin/abax`
 (or `$XDG_BIN_HOME`), the desktop entry to `~/.local/share/applications/`
-and the icon to `~/.local/share/icons/`, so Abax appears in your launcher.
-You can also skip the installer and run `./abax-v0.3.0-linux-x86_64/abax`
-directly. The binary needs a Vulkan or OpenGL driver, which every desktop
-Linux has.
+and the icon to `~/.local/share/icons/`. The binary also runs in place,
+`./abax-v0.3.0-linux-x86_64/abax`. It needs a Vulkan or OpenGL driver.
 
 ### Windows
 
@@ -47,8 +44,8 @@ Download the dmg for your Mac (Apple menu > About This Mac: "Apple M1" or
 later means Apple silicon, "Intel" means Intel), open it and drag
 `Abax.app` to Applications.
 
-The app is ad-hoc signed but not notarized (there is no paid Apple
-certificate), so the first launch says "Apple could not verify Abax".
+The app is ad-hoc signed but not notarized, so the first launch says
+"Apple could not verify Abax".
 Right-click the app > Open > Open; on macOS 15 and later, open it once, then
 click Open Anyway in System Settings > Privacy & Security. Or run once in a
 terminal:
@@ -57,18 +54,15 @@ terminal:
 xattr -cr /Applications/Abax.app
 ```
 
-Version 0.2.0 was not signed as a bundle and macOS called it "damaged";
-0.2.1 fixes that ([details](https://github.com/ZahakJ/abax/blob/main/docs/macos-gatekeeper.md)).
-
 ### Android
 
 On the phone, open the
 [arm64-v8a APK](https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-android-arm64-v8a.apk)
-link and install it. Android asks you to allow installing apps from your
-browser the first time. Abax needs Android 7.0 (API 24) or newer. The
+link and install it, allowing installs from the browser when asked.
+Abax needs Android 7.0 (API 24) or newer. The
 [universal APK](https://github.com/ZahakJ/abax/releases/download/v0.3.0/abax-v0.3.0-android-universal.apk)
 also contains 32-bit ARM and x86_64 code; use it on an old 32-bit phone or
-an emulator. This version has no sound on Android.
+an emulator. There is no sound on Android.
 
 ## Your first session
 
@@ -86,15 +80,14 @@ an emulator. This version has no sound on Android.
    shown. Nothing here counts towards your record.
 4. **The drill.** Press **Start the drill** for ten items. Now the hint
    waits for the delay set in Settings (4 s by default) and every answer
-   is recorded. When you are wrong, Abax does not just say so: the correct
-   bead moves replay on the soroban, in order.
+   is recorded. A wrong answer replays the correct bead moves, in order.
 5. **Back home.** The card now offers the suggested next lesson as soon as
    its prerequisites are known well enough, or a planned session: a short
    warm-up, a focus drill on your weakest skill and a cool-down. The
    [scheduler chapter](scheduler.md) explains how it chooses.
 
-You can also leave the path at any time: nothing is locked. Open any lesson
-in any order, and tap **I know this already** on the ones you can skip
+Nothing is locked. Open any lesson in any order, and tap **I know this
+already** on the ones you can skip
 ([how that works](curriculum.md#skipping-what-you-know)). The home screen
 has eight entries:
 
@@ -112,15 +105,14 @@ has eight entries:
 ## Working the soroban
 
 **Touch and mouse.** Tap an earth bead and it moves together with the beads
-between it and the beam, the way a finger pushes a group. Tap the heaven
-bead to toggle it. You can also drag beads; on release they snap to the
-nearer position. A bead's hit area is the full width of its rod, so you do
-not need to aim at the bead itself.
+between it and the beam. Tap the heaven bead to toggle it. Dragged beads
+snap to the nearer position on release. A bead's hit area is the full width
+of its rod.
 
 **Keyboard.** Digits set the active rod and move one rod to the right;
 Backspace clears the active rod and moves left; the Left and Right arrows
 move the active rod in free practice; Enter or Space checks the answer;
 Escape or Delete clears the soroban.
 
-**Keypad.** Phones get an on-screen keypad under the thumb. It can be
-turned off in Settings, and moved to the left for left-handed use.
+**Keypad.** An on-screen keypad sits under the soroban. Settings can turn
+it off or move it to the left.

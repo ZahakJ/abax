@@ -1,4 +1,4 @@
-//! Palette and egui visuals. See DESIGN.md for the tokens.
+//! Palette and egui visuals. Tokens are listed in docs/internals.md.
 
 use abax_core::store::Finish;
 use egui::{Color32, CornerRadius, Stroke, Visuals};

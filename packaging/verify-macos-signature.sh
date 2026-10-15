@@ -3,7 +3,7 @@
 # release job and fails the build if the bundle is unsigned, partially signed or modified after
 # signing (the cause of "is damaged and can't be opened").
 #
-#   scripts/verify-macos-signature.sh <App.app | image.dmg>...
+#   packaging/verify-macos-signature.sh <App.app | image.dmg>...
 #
 # A .dmg is mounted read-only and every .app at its top level is checked: that copy is what
 # users download. spctl is printed for the log only: without a Developer ID and notarization it

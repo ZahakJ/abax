@@ -1,11 +1,7 @@
 # Finger rules
 
-## The question
-
-On paper it does not matter which hand writes a digit. On the soroban it
-does: a fast operator makes every move with one of two fingers, in a fixed
-order, so the hand never hesitates. Abax shows the finger with every move
-and every move list follows the order below.
+Every move is made with one of two fingers, in a fixed order. Abax shows
+the finger with every move and follows the order below.
 
 ## Which finger
 
@@ -20,8 +16,7 @@ The standard Japanese method uses two fingers of one hand:
 | Heaven bead down, to the beam (adds 5) | index |
 | Heaven bead up, away from the beam (subtracts 5) | index |
 
-The thumb only ever pushes up. Everything else is the index finger. That is
-all of it; the rest is about order.
+The thumb only pushes up. Everything else is the index finger.
 
 ## Kojima's six ordering rules
 

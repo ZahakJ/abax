@@ -1,31 +1,27 @@
 # The curriculum
 
-Abax teaches fifteen skills. Twelve are bead skills (S0 to S11), three are
-mental skills (A1 to A3). Each skill has a lesson, a drill generator that
-only produces items exercising that skill's rule, and a difficulty ladder.
-Everything on this page comes from `crates/abax-core/src/curriculum.rs` and
-`generator.rs`.
+Fifteen skills: twelve bead skills (S0 to S11) and three mental skills
+(A1 to A3). Each has a lesson, a drill generator that only produces items
+exercising its rule, and a difficulty ladder (`crates/abax-core/src/curriculum.rs`,
+`generator.rs`).
 
 ## The graph
 
-Nothing is locked. Every lesson opens at any time, every drill can be
-picked, and you can take them in any order or skip the ones you already
-know. The prerequisites below are the **suggested** path, not a gate.
+Nothing is locked. The prerequisites below are the **suggested** path,
+not a gate.
 
 A skill's prerequisites count as met when **every** one of them has a
 knowledge estimate of at least 0.80 (see [the scheduler](scheduler.md)).
-That threshold does three things, all of them advice:
+That threshold drives three things:
 
 - **The suggested next lesson.** The lesson list marks one lesson *next*,
   and Home's **Continue** opens it: the first skill, in the order of the
   table, whose prerequisites are met and which you have neither practised
-  nor marked as known. It does not wait for the prerequisite to be fully
-  mastered, so you meet the next idea while the previous one is still
-  settling.
+  nor marked as known. It does not wait for the prerequisite to be
+  mastered.
 - **The "builds on" note.** Open a lesson whose prerequisites are not met
   yet and a small line under its title names them, for example *Builds on:
-  S10 Multiplication*, each a link to that lesson. The note appears the first
-  time only; it never blocks and never repeats.
+  S10 Multiplication*, each a link to that lesson. It appears once.
 - **A light review in planned sessions,** described under
   [the session planner](scheduler.md#what-today-the-session-planner).
 
@@ -37,17 +33,13 @@ That threshold does three things, all of them advice:
 ### Skipping what you know
 
 Every lesson has **I know this already** at the top right. It marks the
-skill as known and moves you on to the suggested next lesson. Marking
-does not pretend you have mastered the skill: it sets the knowledge
-estimate to 0.80, the same threshold as above, not to 1. That is enough
-for later skills to count it as met, and low enough that the planner keeps
-checking it: a known skill is mixed into focus drills and cool-downs like
-any skill you have practised, and a few answers move the estimate to where
-it belongs. If you already had a higher estimate, marking never lowers it.
+skill as known, sets its knowledge estimate to 0.80 (never lowering a
+higher one) and moves on to the suggested next lesson. A known skill counts
+as met and is mixed into focus drills and cool-downs like any practised
+skill.
 
-Changed your mind? A lesson you marked shows **Reset this skill** in the same
-place, and **Settings → Data → Reset one skill** does the same for any
-skill. A reset puts that one skill back to new, as if never met; your
+A lesson you marked shows **Reset this skill** in the same place;
+**Settings → Data → Reset one skill** does the same for any skill. A reset puts that one skill back to new, as if never met; your
 history in Stats is kept. When the skill has real practice behind it, the
 reset asks for a second tap.
 
@@ -232,7 +224,7 @@ what was already taken. If what remains is still at least the divisor, the
 guess was too small: raise it and subtract once more. **Drills** exact
 divisions from 2-digit ÷ 1-digit up to 4-digit ÷ 2-digit.
 
-Abax's walk-through of 391 ÷ 17 revises twice, the way a learner would:
+Abax's walk-through of 391 ÷ 17 revises twice:
 try 3 (from 3 ÷ 1), find 3 × 7 cannot be taken, revise to 2 and take 2 × 7;
 then try 5, revise to 4, then to 3, and take 3 × 7. The quotient 23 is read
 three rods left of the dividend's units.
